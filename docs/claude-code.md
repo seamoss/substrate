@@ -6,6 +6,8 @@ This guide explains how to integrate Substrate with Claude Code using a `CLAUDE.
 
 Claude Code automatically reads `CLAUDE.md` files in your project root and follows the instructions within. By adding Substrate commands to your `CLAUDE.md`, you can give Claude persistent context across sessions.
 
+> **Strategy Note:** This guide uses the **Instructions** strategy (the default). Claude Code runs Substrate CLI commands directly. See [Agent Integration](agent-integration.md) for alternative strategies.
+
 ## Setup
 
 ### 1. Install Substrate
@@ -43,9 +45,8 @@ This project uses Substrate for persistent context. Follow this protocol:
 Run this command first to load project context:
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
 ```
-````
 
 Internalize all constraints and decisions before proceeding with any work.
 
@@ -62,39 +63,51 @@ When you discover or establish any of the following, capture it immediately:
 
 Use tags to categorize: `--tag api`, `--tag auth`, `--tag database`
 
+### Session Tracking (Optional)
+
+Track your work sessions for better context:
+
+```bash
+substrate session start "task-name"  # Start tracking
+substrate session end                 # End with summary
+```
+
 ### On Task Completion
 
-After completing significant work, capture:
+After completing significant work:
 
-1. Any constraints that were implicit but should be explicit
-2. Decisions made (with brief rationale)
-3. Relationships between concepts
+1. Run `substrate extract diff` to review changes
+2. Capture any constraints that were implicit
+3. Document decisions with rationale
+4. Link related concepts
 
 ### Quick Reference
 
 ```bash
-substrate brief --compact    # Load context (do this first!)
-substrate add "..." -t TYPE  # Save context
-substrate ls                 # List recent context
-substrate link add X Y       # Link related items
-substrate digest             # Session summary
-substrate recall "query"     # Search history
+substrate brief --format agent  # Load context (do this first!)
+substrate add "..." -t TYPE     # Save context
+substrate ls                    # List recent context
+substrate extract diff          # Suggest context from changes
+substrate link add X Y          # Link related items
+substrate session status        # Check active session
+substrate digest                # Session summary
+substrate recall "query"        # Search history
 ```
-
 ````
 
 ## How It Works
 
-1. **Session Start**: Claude reads `CLAUDE.md` and sees the instruction to run `substrate brief --compact`
-2. **Context Loading**: Claude runs the command and receives all stored constraints, decisions, and notes
+1. **Session Start**: Claude reads `CLAUDE.md` and sees the instruction to run `substrate brief --format agent`
+2. **Context Loading**: Claude runs the command and receives prioritized context (constraints, decisions, notes)
 3. **During Work**: When Claude makes decisions or discovers rules, it captures them with `substrate add`
-4. **Persistence**: Context is stored in Substrate and available in future sessions
+4. **Session Tracking**: Optionally, Claude starts a session to track activity
+5. **Persistence**: Context is stored in Substrate and available in future sessions
 
 ## Example CLAUDE.md
 
 Here's a complete example for a web application:
 
-```markdown
+````markdown
 # MyApp
 
 A Next.js e-commerce application.
@@ -106,7 +119,9 @@ This project uses Substrate for persistent context.
 ### On Session Start
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
+substrate session start "current-task"
+```
 ````
 
 ### Capture Protocol
@@ -120,10 +135,12 @@ substrate brief --compact
 ### Commands
 
 ```bash
-substrate brief --compact    # Load context first
-substrate add "..." -t TYPE  # Capture context
-substrate ls --tag payments  # Filter by tag
-substrate sync push          # Share with team
+substrate brief --format agent  # Load context first
+substrate add "..." -t TYPE     # Capture context
+substrate extract diff          # Review changes for context
+substrate ls --tag payments     # Filter by tag
+substrate session end           # End session with stats
+substrate sync push             # Share with team
 ```
 
 ## Tech Stack
@@ -175,14 +192,16 @@ Always include a quick reference section so Claude can easily find commands:
 ### Quick Reference
 
 ```bash
-substrate brief --compact    # START HERE - load context
-substrate add "..." -t TYPE  # Save context
-substrate ls                 # List recent
-substrate ls --type decision # Filter by type
-substrate ls --tag api       # Filter by tag
-substrate link add X Y       # Link items
-substrate digest             # What was added this session
-substrate recall "search"    # Find past context
+substrate brief --format agent  # START HERE - load context
+substrate session start "task"  # Track this session
+substrate add "..." -t TYPE     # Save context
+substrate ls                    # List recent
+substrate ls --type decision    # Filter by type
+substrate ls --tag api          # Filter by tag
+substrate extract diff          # Suggest context from changes
+substrate link add X Y          # Link items
+substrate session end           # End session with stats
+substrate recall "search"       # Find past context
 ```
 ````
 

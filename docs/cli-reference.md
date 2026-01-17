@@ -27,9 +27,10 @@ All commands support:
 | `config`  | Manage configuration          |
 | `mcp`     | MCP server for agents         |
 | `auth`    | Manage authentication         |
+| `session` | Manage work sessions          |
 | `digest`  | Session summary               |
 | `recall`  | Search history                |
-| `extract` | Extraction checklist          |
+| `extract` | Extract context from changes  |
 | `dump`    | Export to markdown            |
 
 ---
@@ -84,8 +85,13 @@ substrate add <content> [options]
 - `-t, --type <type>` — Context type (default: `note`)
 - `--tag <tags>` — Comma-separated tags
 - `-s, --scope <scope>` — Scope path (default: `*`)
+- `-f, --force` — Skip duplicate detection
 - `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
+
+**Duplicate Detection:**
+
+The CLI automatically checks for similar existing content. If a match is found (>70% similarity), you'll be warned. Use `--force` to add anyway.
 
 **Context Types:**
 
@@ -174,29 +180,39 @@ substrate brief [path] [options]
 
 **Options:**
 
-- `--compact` — Output prompt text only
-- `--human` — Human-readable format
+- `-f, --format <format>` — Output format: `default`, `agent`, `markdown`
+- `--compact` — Output prompt text only (legacy, use `--format`)
+- `--human` — Human-readable format with colors
 - `--no-links` — Exclude relationship info
+- `-t, --type <type>` — Filter by type
 - `--tag <tags>` — Filter by tags
 - `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON (default)
+
+**Output Formats:**
+
+- `default` — JSON with full context (default)
+- `agent` — Optimized for AI agents with session info
+- `markdown` — Clean markdown output
 
 **Examples:**
 
 ```bash
 substrate brief                    # JSON output
+substrate brief --format agent     # Agent-optimized output
+substrate brief --format markdown  # Clean markdown
 substrate brief --compact          # Plain text for prompts
-substrate brief --human            # Readable format
+substrate brief --human            # Readable format with colors
 substrate brief --tag api,auth     # Filter by tags
 ```
 
-**Output includes:**
+**Agent Format Output:**
 
-- Workspace info
-- Constraints (highest priority)
-- Decisions
-- Notes
-- Links between items
+The `--format agent` output includes:
+
+- Active session status (if any)
+- Prioritized sections (constraints first)
+- Quick command reference
 
 ---
 
@@ -595,6 +611,84 @@ See [Authentication](authentication.md) for details.
 
 ---
 
+## session
+
+Manage work sessions for tracking agent activity.
+
+### session start
+
+Start a new work session.
+
+```bash
+substrate session start [name] [options]
+```
+
+**Arguments:**
+
+- `name` — Optional session name
+
+**Options:**
+
+- `-w, --workspace <name>` — Workspace name
+- `--json` — Output as JSON
+
+**Examples:**
+
+```bash
+substrate session start
+substrate session start "implementing auth"
+substrate session start "bug-fix-123" --workspace myproject
+```
+
+### session end
+
+End the current work session.
+
+```bash
+substrate session end [options]
+```
+
+**Options:**
+
+- `-w, --workspace <name>` — Workspace name
+- `--json` — Output as JSON
+
+Shows session statistics including:
+
+- Duration
+- Context items added during the session
+- Links created
+
+### session status
+
+Show current session status.
+
+```bash
+substrate session status [options]
+```
+
+**Options:**
+
+- `-w, --workspace <name>` — Workspace name
+- `--json` — Output as JSON
+
+### session list
+
+List recent sessions.
+
+```bash
+substrate session list [options]
+substrate session ls [options]
+```
+
+**Options:**
+
+- `-n, --limit <n>` — Number of sessions to show (default: 10)
+- `-w, --workspace <name>` — Workspace name
+- `--json` — Output as JSON
+
+---
+
 ## digest
 
 Summarize context added in current session.
@@ -650,18 +744,71 @@ substrate recall "auth" --hours 48
 
 ## extract
 
-Show extraction checklist for capturing context.
+Extract context suggestions from work or show extraction checklist.
+
+### extract checklist
+
+Show extraction checklist (default action).
 
 ```bash
-substrate extract [options]
+substrate extract
+substrate extract checklist [options]
 ```
 
 **Options:**
 
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 Use after completing work to ensure important context is captured.
+
+### extract diff
+
+Analyze git diff and suggest context to extract.
+
+```bash
+substrate extract diff [options]
+```
+
+**Options:**
+
+- `--staged` — Analyze staged changes only
+- `--json` — Output as JSON
+
+**Examples:**
+
+```bash
+substrate extract diff              # Analyze all uncommitted changes
+substrate extract diff --staged     # Analyze only staged changes
+```
+
+The command analyzes changed files and suggests context based on:
+
+- File types (config, test, schema, API, migration)
+- Change size (large changes prompt architectural decisions)
+- New files added
+
+### extract commit
+
+Analyze a specific commit and suggest context to extract.
+
+```bash
+substrate extract commit [hash] [options]
+```
+
+**Arguments:**
+
+- `hash` — Commit hash (optional, shows recent commits if omitted)
+
+**Options:**
+
+- `--json` — Output as JSON
+
+**Examples:**
+
+```bash
+substrate extract commit              # List recent commits
+substrate extract commit abc123       # Analyze specific commit
+```
 
 ---
 

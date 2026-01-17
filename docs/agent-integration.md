@@ -1,32 +1,146 @@
 # Agent Integration
 
-Substrate provides two strategies for integrating with AI agents: **MCP Server** for native tool integration, and **Instructions Protocol** for any agent that can run shell commands.
+Substrate provides two strategies for integrating with AI agents: **Instructions** (CLI-based) and **MCP** (native tools). This guide helps you choose the right strategy and set it up.
 
-## Strategy Overview
+## Which Strategy Should I Use?
 
-| Strategy         | Best For                           | How It Works                    |
-| ---------------- | ---------------------------------- | ------------------------------- |
-| **MCP**          | Claude Code, MCP-compatible agents | Native tools, no shell commands |
-| **Instructions** | Any agent                          | Agent reads protocol, runs CLI  |
+### Quick Decision Guide
 
-Check your current strategy:
+| If you're using...                    | Recommended Strategy |
+| ------------------------------------- | -------------------- |
+| Claude Code (CLI)                     | **Instructions**     |
+| Claude Desktop with MCP support       | **MCP**              |
+| Cursor                                | **Instructions**     |
+| Windsurf                              | **Instructions**     |
+| GitHub Copilot                        | **Instructions**     |
+| Zed                                   | **Instructions**     |
+| Custom agent with MCP support         | **MCP**              |
+| Any agent that can run shell commands | **Instructions**     |
 
-```bash
-substrate config show
-```
+### Strategy Comparison
 
-Switch strategies:
+| Aspect                | Instructions                 | MCP                            |
+| --------------------- | ---------------------------- | ------------------------------ |
+| **Setup complexity**  | Simple (just CLAUDE.md)      | Requires MCP server config     |
+| **Works with**        | Any agent with shell access  | Only MCP-compatible agents     |
+| **Context loading**   | Agent runs `substrate brief` | Agent calls `substrate_brief`  |
+| **Reliability**       | Very reliable                | Depends on MCP implementation  |
+| **Visibility**        | Commands visible in output   | Tools called silently          |
+| **CLAUDE.md needed?** | Yes                          | Optional (can remove protocol) |
 
-```bash
-substrate config strategy mcp          # Use MCP tools
-substrate config strategy instructions # Use CLI commands
-```
+### When to Use Instructions (Recommended for Most Users)
+
+Use **Instructions** if:
+
+- You want maximum compatibility across different AI tools
+- You're using Claude Code, Cursor, Windsurf, or similar IDE integrations
+- You want to see exactly what commands the agent runs
+- You prefer explicit agent behavior over implicit tool calls
+- You're just getting started with Substrate
+
+### When to Use MCP
+
+Use **MCP** if:
+
+- You're building a custom agent that supports MCP natively
+- You want the cleanest possible agent interface (no shell commands in output)
+- You're using Claude Desktop with MCP server support
+- You understand MCP and want tighter integration
 
 ---
 
-## MCP Server (Recommended)
+## Instructions Strategy (Default)
 
-The MCP (Model Context Protocol) server exposes Substrate functionality as native tools that agents can call directly.
+The agent reads instructions from your `CLAUDE.md` file and executes CLI commands.
+
+### Setup
+
+1. **Verify strategy is set (it's the default):**
+
+   ```bash
+   substrate config show
+   # Strategy: instructions
+   ```
+
+2. **Add protocol to your CLAUDE.md:**
+
+   ````markdown
+   ## Substrate Protocol
+
+   This project uses Substrate for persistent context.
+
+   ### On Session Start
+
+   ```bash
+   substrate brief --format agent
+   ```
+   ````
+
+   ### During Work
+
+   | Discovery | Command                                 |
+   | --------- | --------------------------------------- |
+   | Hard rule | `substrate add "..." --type constraint` |
+   | Decision  | `substrate add "..." --type decision`   |
+   | Context   | `substrate add "..." --type note`       |
+
+   ### Session Tracking
+
+   ```bash
+   substrate session start "task-name"  # Start tracking
+   substrate session end                 # End with summary
+   ```
+
+   ### Quick Reference
+
+   ```bash
+   substrate brief --format agent  # Load context
+   substrate add "..." -t TYPE     # Save context
+   substrate ls                    # List recent
+   substrate extract diff          # Review changes for context
+   substrate session status        # Check session
+   ```
+
+   ```
+
+   ```
+
+3. **Initialize your workspace:**
+
+   ```bash
+   substrate init myproject
+   ```
+
+### How It Works
+
+1. Agent reads `CLAUDE.md` at session start
+2. Agent runs `substrate brief --format agent` to load context
+3. During work, agent captures discoveries with `substrate add`
+4. Context persists across sessions
+
+### Output Formats
+
+The `brief` command supports multiple formats:
+
+```bash
+substrate brief                  # JSON (default)
+substrate brief --format agent   # Optimized for AI agents
+substrate brief --format markdown # Clean markdown
+substrate brief --compact        # Plain text prompt
+substrate brief --human          # Human-readable with colors
+```
+
+The `--format agent` output includes:
+
+- Active session information
+- Prioritized context sections (constraints first)
+- Quick command reference for the agent
+
+---
+
+## MCP Strategy
+
+The MCP server exposes Substrate as native tools that agents can call directly.
 
 ### Setup
 
@@ -36,13 +150,24 @@ The MCP (Model Context Protocol) server exposes Substrate functionality as nativ
    substrate config strategy mcp
    ```
 
-2. **Start the server:**
+2. **Configure your MCP client.** For Claude Desktop, add to your config:
+
+   ```json
+   {
+     "mcpServers": {
+       "substrate": {
+         "command": "substrate",
+         "args": ["mcp", "serve"]
+       }
+     }
+   }
+   ```
+
+3. **Start the server** (if not auto-started):
 
    ```bash
    substrate mcp serve
    ```
-
-3. **Configure your agent** to connect to the MCP server.
 
 ### Available Tools
 
@@ -54,24 +179,10 @@ The MCP (Model Context Protocol) server exposes Substrate functionality as nativ
 | `substrate_digest` | Session summary           |
 | `substrate_link`   | Create relationship links |
 
-### Claude Code Integration
+### MCP Tool Schemas
 
-Add to your Claude Code MCP configuration:
-
-```json
-{
-  "mcpServers": {
-    "substrate": {
-      "command": "substrate",
-      "args": ["mcp", "serve"]
-    }
-  }
-}
-```
-
-### Tool Schemas
-
-**substrate_brief**
+<details>
+<summary>substrate_brief</summary>
 
 ```json
 {
@@ -84,7 +195,10 @@ Add to your Claude Code MCP configuration:
 }
 ```
 
-**substrate_add**
+</details>
+
+<details>
+<summary>substrate_add</summary>
 
 ```json
 {
@@ -98,7 +212,10 @@ Add to your Claude Code MCP configuration:
 }
 ```
 
-**substrate_recall**
+</details>
+
+<details>
+<summary>substrate_recall</summary>
 
 ```json
 {
@@ -112,7 +229,10 @@ Add to your Claude Code MCP configuration:
 }
 ```
 
-**substrate_digest**
+</details>
+
+<details>
+<summary>substrate_digest</summary>
 
 ```json
 {
@@ -124,7 +244,10 @@ Add to your Claude Code MCP configuration:
 }
 ```
 
-**substrate_link**
+</details>
+
+<details>
+<summary>substrate_link</summary>
 
 ```json
 {
@@ -141,220 +264,203 @@ Add to your Claude Code MCP configuration:
 }
 ```
 
+</details>
+
+### What About CLAUDE.md?
+
+When using MCP, you can:
+
+- **Remove the Substrate protocol section** from CLAUDE.md (agent uses tools directly)
+- **Keep it for fallback** (if MCP connection fails, agent can use CLI)
+- **Simplify it** to just document the project, not the protocol
+
 ---
 
-## Instructions Protocol
+## Switching Strategies
 
-For agents without MCP support, use the instructions protocol. The agent reads instructions from CLAUDE.md and executes CLI commands.
+### From Instructions to MCP
 
-### Setup
-
-1. **Enable instructions mode:**
-
-   ```bash
-   substrate config strategy instructions
-   ```
-
-2. **Include protocol in agent context** — The protocol is in CLAUDE.md
-
-### Agent Protocol
-
-Include these instructions in your agent's system prompt or context file:
-
-```markdown
-## Substrate Protocol
-
-This project uses Substrate for persistent context. Follow this protocol:
-
-### On Session Start
-
-Run `substrate brief --compact` to load project context.
-Internalize constraints and decisions before proceeding.
-
-### During Work
-
-Capture discoveries immediately:
-
-| Discovery    | Command                                 |
-| ------------ | --------------------------------------- |
-| Hard rule    | `substrate add "..." --type constraint` |
-| Decision     | `substrate add "..." --type decision`   |
-| Context      | `substrate add "..." --type note`       |
-| Relationship | `substrate link add <id1> <id2>`        |
-
-### On Task Completion
-
-1. Run `substrate extract` for checklist
-2. Capture implicit constraints
-3. Document decisions with rationale
-4. Link related concepts
-
-### Quick Reference
+```bash
+substrate config strategy mcp
 ```
 
-substrate brief --compact # Load context
-substrate add "..." -t TYPE # Save context
-substrate ls # List recent
-substrate link add X Y # Link items
-substrate digest # Session summary
-substrate recall "query" # Search history
+Then optionally remove the Substrate protocol section from CLAUDE.md.
 
+### From MCP to Instructions
+
+```bash
+substrate config strategy instructions
 ```
 
+Then add the Substrate protocol to CLAUDE.md (see Instructions setup above).
+
+---
+
+## Session Tracking
+
+Both strategies support session tracking to monitor agent activity:
+
+```bash
+# Start a session
+substrate session start "implementing auth"
+
+# Check status
+substrate session status
+
+# End session (shows stats)
+substrate session end
+
+# List recent sessions
+substrate session list
 ```
 
-### Example Agent Behavior
+Sessions track:
 
-**Good — Agent loads context first:**
+- Duration
+- Context items added during the session
+- Links created
 
+---
+
+## Context Extraction from Git
+
+After completing work, extract context suggestions from your changes:
+
+```bash
+# Analyze uncommitted changes
+substrate extract diff
+
+# Analyze staged changes only
+substrate extract diff --staged
+
+# Analyze a specific commit
+substrate extract commit abc123
+
+# Show general extraction checklist
+substrate extract checklist
 ```
-User: Help me add authentication
 
-Agent: Let me first check the project context.
-> substrate brief --compact
+The extract command analyzes changed files and suggests context to capture based on:
 
-I see there are constraints about security and a decision to use JWT.
-Based on this context, I'll implement authentication using...
-```
-
-**Good — Agent captures decisions:**
-
-```
-Agent: I've decided to use bcrypt for password hashing because...
-> substrate add "Using bcrypt for password hashing - industry standard, configurable work factor" --type decision --tag auth
-```
+- File types (config, test, schema, API, migration)
+- Change size
+- New files added
 
 ---
 
 ## Context Priority
 
-Agents should prioritize context types:
+Agents should prioritize context by type:
 
-1. **Constraints** — Treat as immutable facts
-2. **Decisions** — Respect unless explicitly changing
-3. **Notes** — Background information
-
-Example brief output:
-
-```markdown
-## Project Context: myproject
-
-### Constraints (treat as immutable facts)
-
-- All API responses must be JSON
-- Never store passwords in plain text
-- Rate limit: 100 req/min per user
-
-### Decisions (architectural choices made)
-
-- Using PostgreSQL for ACID compliance
-- JWT tokens for stateless auth
-  → implements: API is stateless
-
-### Notes
-
-- Frontend team prefers Tailwind
-- Deployment is on AWS ECS
-```
-
----
-
-## Session Recovery
-
-If an agent session is interrupted:
-
-```bash
-# What was captured before crash?
-substrate digest --hours 2
-
-# What was discussed about X?
-substrate recall "authentication"
-
-# Full context refresh
-substrate brief --compact
-```
-
----
-
-## Multi-Agent Scenarios
-
-### Shared Workspace
-
-Multiple agents can share context through a common workspace:
-
-```bash
-# Agent 1 adds context
-substrate add "API rate limiting implemented" --type note --tag api
-
-# Agent 2 sees it immediately
-substrate brief --compact
-```
-
-### Workspace Tokens for Agents
-
-Create dedicated tokens for each agent:
-
-```bash
-# Read-only agent (monitoring, reporting)
-substrate auth token create myworkspace analytics-bot --scope read
-
-# Read-write agent (development)
-substrate auth token create myworkspace dev-agent --scope read_write
-```
+1. **Constraints** — Immutable facts, treat as hard requirements
+2. **Decisions** — Architectural choices, respect unless explicitly changing
+3. **Notes** — Background information, helpful but not binding
+4. **Tasks** — Active work items
+5. **Entities** — Key domain concepts
 
 ---
 
 ## Best Practices
 
-### For MCP Integration
+### For All Integrations
 
-1. Start with `substrate_brief` to load context
-2. Use `substrate_add` for discoveries during work
-3. Call `substrate_digest` to review session additions
-4. Use `substrate_link` to connect related concepts
+1. **Load context first** — Always get brief before starting work
+2. **Capture immediately** — Don't wait until end of session
+3. **Be specific** — "Auth tokens expire after 24h" not "tokens expire"
+4. **Include rationale** — "Using Postgres for ACID compliance"
+5. **Use tags consistently** — Define a taxonomy and stick to it
 
-### For Instructions Protocol
+### For Instructions Strategy
 
-1. Always run `substrate brief --compact` at session start
-2. Capture context immediately when discovered
-3. Use tags consistently for categorization
-4. Run `substrate extract` before ending sessions
+1. Put the protocol near the top of CLAUDE.md
+2. Include the quick reference section
+3. Be explicit about what to capture
+4. Consider using `--format agent` for cleaner output
+
+### For MCP Strategy
+
+1. Test the MCP connection before relying on it
+2. Keep CLAUDE.md as fallback documentation
+3. Use `substrate mcp status` to check server health
 
 ### Context Quality
 
-- **Be specific** — "Auth tokens expire after 24 hours" not "tokens expire"
-- **Include rationale** — "Using Postgres for ACID compliance"
-- **Use appropriate types** — Constraints for rules, decisions for choices
-- **Tag consistently** — `--tag auth,security` for searchability
+Good context:
+
+```bash
+substrate add "API rate limit: 100 req/min per user, returns 429 with Retry-After header" --type constraint --tag api
+```
+
+Poor context:
+
+```bash
+substrate add "There's a rate limit" --type note
+```
 
 ---
 
 ## Troubleshooting
 
+### Agent isn't loading context
+
+```bash
+# Check workspace is set up
+substrate status
+
+# Verify context exists
+substrate brief --compact
+
+# Check authentication
+substrate auth status
+```
+
 ### MCP server not responding
 
 ```bash
-substrate mcp status
-# Check if mode is enabled
+# Check mode is enabled
+substrate config show
 
-substrate mcp serve
 # Start server manually to see errors
+substrate mcp serve
+
+# Check server status
+substrate mcp status
 ```
 
-### Agent not seeing context
+### Agent adding duplicate context
+
+The CLI now has duplicate detection built in:
 
 ```bash
-substrate brief --compact
-# Verify context exists
+# This will warn if similar content exists
+substrate add "API responses must be JSON"
 
-substrate status
-# Verify workspace is mounted
+# Use --force to add anyway
+substrate add "API responses must be JSON" --force
 ```
 
-### Agent adding too much context
+### Context not syncing across team
 
-Set guidelines in your prompt:
+```bash
+# Pull latest from remote
+substrate sync pull
 
-- Only capture non-obvious information
-- Avoid duplicating existing constraints
-- Focus on project-specific knowledge
+# Push your changes
+substrate sync push
+
+# Check sync status
+substrate sync status
+```
+
+---
+
+## IDE-Specific Guides
+
+For detailed setup instructions for your specific tool:
+
+- [Claude Code](claude-code.md)
+- [Cursor](cursor.md)
+- [Windsurf](windsurf.md)
+- [GitHub Copilot](github-copilot.md)
+- [Zed](zed.md)
+- [Warp](warp.md)
