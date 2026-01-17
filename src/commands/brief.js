@@ -1,11 +1,58 @@
+/**
+ * Brief command - Primary agent interface for retrieving project context.
+ *
+ * The `brief` command is the main way agents and humans get context about
+ * the current workspace. It supports multiple output formats optimized for
+ * different use cases:
+ *
+ * - **default** - JSON with full context structure (for programmatic use)
+ * - **agent** - Optimized text format with session info (for AI agents)
+ * - **markdown** - Clean markdown (for documentation)
+ *
+ * Context is automatically scoped by:
+ * - Current directory (via mount resolution)
+ * - Tags (via --tag filter)
+ * - Type (via --type filter)
+ *
+ * @module commands/brief
+ *
+ * @example
+ * // Get context for current directory
+ * substrate brief
+ *
+ * @example
+ * // Agent-optimized format
+ * substrate brief --format agent
+ *
+ * @example
+ * // Filter by tags
+ * substrate brief --tag api,auth
+ */
+
 import { Command } from 'commander';
 import { resolve } from 'path';
 import { getDb } from '../db/local.js';
 import { formatJson, heading, contextItem, info, dim, shortId } from '../lib/output.js';
 import chalk from 'chalk';
 
+/**
+ * Valid output format values.
+ * @type {string[]}
+ * @constant
+ */
 const VALID_FORMATS = ['default', 'agent', 'markdown'];
 
+/**
+ * Find the mount that contains the given path.
+ *
+ * Searches mounts by longest path first to find the most specific match.
+ * For example, `/foo/bar/baz` matches `/foo/bar` over `/foo`.
+ *
+ * @param {import('better-sqlite3').Database} db - Database instance
+ * @param {string} targetPath - Absolute path to resolve
+ * @returns {import('../db/local.js').Mount|null} The matching mount or null
+ * @private
+ */
 function findMountForPath(db, targetPath) {
   const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
 
@@ -18,6 +65,26 @@ function findMountForPath(db, targetPath) {
   return null;
 }
 
+/**
+ * @typedef {Object} LinkInfo
+ * @property {'in'|'out'} direction - Whether this item is source or target
+ * @property {string} relation - Relationship type (relates_to, implements, etc.)
+ * @property {Object} [target] - Target item info (when direction is 'out')
+ * @property {Object} [source] - Source item info (when direction is 'in')
+ */
+
+/**
+ * Get all links for a set of context items.
+ *
+ * Queries the links table and builds a map of item ID to array of link info.
+ * Each link appears in both the source and target item's arrays with
+ * appropriate direction indicators.
+ *
+ * @param {import('better-sqlite3').Database} db - Database instance
+ * @param {string[]} itemIds - Array of context item UUIDs
+ * @returns {Object<string, LinkInfo[]>} Map of item ID to array of links
+ * @private
+ */
 function getLinksForItems(db, itemIds) {
   if (itemIds.length === 0) return {};
 
@@ -67,6 +134,25 @@ function getLinksForItems(db, itemIds) {
   return linkMap;
 }
 
+/**
+ * @typedef {Object} SlimContext
+ * @property {string} content - The text content
+ * @property {string[]} [tags] - Tags if present
+ * @property {string} [scope] - Scope if not global (*)
+ * @property {Object[]} [links] - Simplified link info
+ */
+
+/**
+ * Create a slim representation of a context item for output.
+ *
+ * Removes internal fields (id, workspace_id, timestamps) and only includes
+ * optional fields if they have meaningful values.
+ *
+ * @param {import('../db/local.js').ContextItem} item - Full context item
+ * @param {Object<string, LinkInfo[]>} linkMap - Link map from getLinksForItems
+ * @returns {SlimContext} Minimal context representation
+ * @private
+ */
 function slimContext(item, linkMap) {
   const slim = { content: item.content };
   if (item.tags && item.tags.length > 0) slim.tags = item.tags;
@@ -87,6 +173,30 @@ function slimContext(item, linkMap) {
   return slim;
 }
 
+/**
+ * @typedef {Object} Brief
+ * @property {string} workspace - Workspace name
+ * @property {string} path - Resolved path
+ * @property {SlimContext[]} constraints - Constraint items
+ * @property {SlimContext[]} decisions - Decision items
+ * @property {SlimContext[]} notes - Note items
+ * @property {SlimContext[]} tasks - Task items
+ * @property {SlimContext[]} entities - Entity items
+ * @property {number} count - Total number of items
+ */
+
+/**
+ * Generate prompt text from a brief object.
+ *
+ * Creates human-readable text output suitable for inclusion in prompts.
+ * Organizes context by type with clear section headers.
+ *
+ * @param {Brief} brief - The structured brief object
+ * @param {Object<string, LinkInfo[]>} _linkMap - Link map (unused, for compatibility)
+ * @param {Object[]} _filtered - Filtered items (unused, for compatibility)
+ * @returns {string} Formatted prompt text
+ * @private
+ */
 function generatePrompt(brief, _linkMap, _filtered) {
   const lines = [];
 
@@ -174,6 +284,16 @@ function generatePrompt(brief, _linkMap, _filtered) {
   return lines.join('\n').trim();
 }
 
+/**
+ * Get the currently active session for a workspace.
+ *
+ * A session is active if its `ended_at` is NULL.
+ *
+ * @param {import('better-sqlite3').Database} db - Database instance
+ * @param {string} workspaceId - Workspace UUID
+ * @returns {import('../db/local.js').Session|undefined} Active session or undefined
+ * @private
+ */
 function getActiveSession(db, workspaceId) {
   return db
     .prepare(
@@ -182,6 +302,13 @@ function getActiveSession(db, workspaceId) {
     .get(workspaceId);
 }
 
+/**
+ * Format a duration from a start timestamp to now.
+ *
+ * @param {string} startedAt - ISO 8601 start timestamp
+ * @returns {string} Human-readable duration (e.g., "2h 15m" or "45m")
+ * @private
+ */
 function formatDuration(startedAt) {
   const start = new Date(startedAt);
   const now = new Date();
@@ -194,6 +321,31 @@ function formatDuration(startedAt) {
   return `${minutes}m`;
 }
 
+/**
+ * Generate agent-optimized format output.
+ *
+ * Creates a text format optimized for AI agent consumption:
+ * - Clear section headers in caps
+ * - Active session info at the top
+ * - Constraints first (highest priority)
+ * - Quick command reference at the bottom
+ *
+ * @param {Brief} brief - The structured brief object
+ * @param {import('../db/local.js').Workspace} workspace - Workspace info
+ * @param {import('../db/local.js').Session|undefined} session - Active session if any
+ * @returns {string} Agent-optimized text output
+ * @private
+ *
+ * @example
+ * // Output format:
+ * // # SUBSTRATE CONTEXT
+ * // Workspace: myproject
+ * // Session: implementing-auth (2h 15m)
+ * //
+ * // ## CONSTRAINTS (Treat as hard requirements)
+ * // * All API responses must be JSON
+ * // ...
+ */
 function generateAgentFormat(brief, workspace, session) {
   const lines = [];
 
@@ -262,6 +414,17 @@ function generateAgentFormat(brief, workspace, session) {
   return lines.join('\n');
 }
 
+/**
+ * Generate clean markdown format output.
+ *
+ * Creates well-formatted markdown suitable for documentation or README files.
+ * Includes proper headings, blockquotes, and markdown task lists.
+ *
+ * @param {Brief} brief - The structured brief object
+ * @param {import('../db/local.js').Workspace} workspace - Workspace info
+ * @returns {string} Markdown-formatted output
+ * @private
+ */
 function generateMarkdownFormat(brief, workspace) {
   const lines = [];
 
@@ -319,6 +482,19 @@ function generateMarkdownFormat(brief, workspace) {
   return lines.join('\n');
 }
 
+/**
+ * The brief command for Commander.js.
+ *
+ * Primary interface for retrieving project context. Supports multiple
+ * output formats and filtering options.
+ *
+ * @type {Command}
+ *
+ * @example
+ * // In CLI entry point:
+ * import { briefCommand } from './commands/brief.js';
+ * program.addCommand(briefCommand);
+ */
 export const briefCommand = new Command('brief')
   .description('Get applicable context for current directory (primary agent interface)')
   .argument('[path]', 'Path to get context for', '.')

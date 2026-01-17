@@ -1,9 +1,105 @@
+/**
+ * Local SQLite database management for offline-first context storage.
+ *
+ * This module provides the local database layer for Substrate. All context
+ * is stored locally first (offline-first), then synced to the remote server.
+ *
+ * ## Database Schema
+ *
+ * - **workspaces** - Project containers with sync metadata
+ * - **mounts** - Directory-to-workspace mappings
+ * - **context** - The actual context items (notes, constraints, decisions, etc.)
+ * - **links** - Relationships between context items
+ * - **sessions** - Work session tracking
+ *
+ * @module db/local
+ */
+
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import { getDbPath } from '../lib/config.js';
 
+/**
+ * Singleton database instance.
+ * @type {import('better-sqlite3').Database|null}
+ * @private
+ */
 let db = null;
 
+/**
+ * @typedef {Object} Workspace
+ * @property {string} id - UUID primary key
+ * @property {string} name - Workspace display name
+ * @property {string|null} description - Optional description
+ * @property {string} project_id - Unique project identifier for pinning
+ * @property {string|null} remote_id - ID on remote server (after sync)
+ * @property {string} created_at - ISO 8601 timestamp
+ * @property {string} updated_at - ISO 8601 timestamp
+ * @property {string|null} synced_at - Last sync timestamp
+ * @property {string|null} deleted_at - Soft delete timestamp
+ */
+
+/**
+ * @typedef {Object} Mount
+ * @property {number} id - Auto-increment primary key
+ * @property {string} workspace_id - Foreign key to workspaces
+ * @property {string} path - Absolute filesystem path
+ * @property {string} scope - Scope pattern (default: '*')
+ * @property {string} tags - JSON-encoded array of tags
+ * @property {string} created_at - ISO 8601 timestamp
+ * @property {string} updated_at - ISO 8601 timestamp
+ */
+
+/**
+ * @typedef {Object} ContextItem
+ * @property {string} id - UUID primary key
+ * @property {string} workspace_id - Foreign key to workspaces
+ * @property {string} type - Context type (note, constraint, decision, task, entity, runbook, snippet)
+ * @property {string} content - The text content
+ * @property {string} tags - JSON-encoded array of tags
+ * @property {string} scope - Scope path pattern (default: '*')
+ * @property {string} meta - JSON-encoded metadata object
+ * @property {string|null} remote_id - ID on remote server (after sync)
+ * @property {string} created_at - ISO 8601 timestamp
+ * @property {string} updated_at - ISO 8601 timestamp
+ * @property {string|null} synced_at - Last sync timestamp
+ * @property {string|null} deleted_at - Soft delete timestamp
+ */
+
+/**
+ * @typedef {Object} Link
+ * @property {number} id - Auto-increment primary key
+ * @property {string} from_id - Source context item UUID
+ * @property {string} to_id - Target context item UUID
+ * @property {string} relation - Relationship type (relates_to, depends_on, blocks, implements, extends, references)
+ * @property {string} created_at - ISO 8601 timestamp
+ */
+
+/**
+ * @typedef {Object} Session
+ * @property {string} id - UUID primary key
+ * @property {string} workspace_id - Foreign key to workspaces
+ * @property {string|null} name - Optional session name
+ * @property {string} started_at - ISO 8601 timestamp
+ * @property {string|null} ended_at - ISO 8601 timestamp (null if active)
+ */
+
+/**
+ * Get the database instance, initializing it if necessary.
+ *
+ * On first call, this:
+ * 1. Opens/creates the SQLite database at `~/.substrate/local.db`
+ * 2. Creates all tables if they don't exist
+ * 3. Runs any pending migrations
+ *
+ * Subsequent calls return the cached instance.
+ *
+ * @returns {import('better-sqlite3').Database} The database instance
+ *
+ * @example
+ * const db = getDb();
+ * const workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get('myproject');
+ */
 export function getDb() {
   if (db) return db;
 
@@ -85,6 +181,18 @@ export function getDb() {
   return db;
 }
 
+/**
+ * Run database migrations for schema updates.
+ *
+ * Handles backwards-compatible schema changes for existing databases:
+ * - Adds `deleted_at` column to context table (soft deletes)
+ * - Adds `deleted_at` column to workspaces table (soft deletes)
+ * - Adds `project_id` column to workspaces table (project pinning)
+ * - Creates unique index on `project_id`
+ *
+ * @param {import('better-sqlite3').Database} db - The database instance
+ * @private
+ */
 function runMigrations(db) {
   // Check and add deleted_at to context if missing
   const contextInfo = db.prepare('PRAGMA table_info(context)').all();
@@ -117,6 +225,18 @@ function runMigrations(db) {
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_project_id ON workspaces(project_id)');
 }
 
+/**
+ * Close the database connection and release resources.
+ *
+ * Resets the singleton instance so next {@link getDb} call creates a fresh connection.
+ * Call this when shutting down the CLI or in tests for cleanup.
+ *
+ * @example
+ * // In test cleanup
+ * afterEach(() => {
+ *   closeDb();
+ * });
+ */
 export function closeDb() {
   if (db) {
     db.close();

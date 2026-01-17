@@ -1,3 +1,30 @@
+/**
+ * Context command - Manage context objects in a workspace.
+ *
+ * Context objects are the core data type in Substrate. Each context item
+ * represents a piece of knowledge about the project:
+ *
+ * - **constraint** - Hard rules, immutable facts (highest priority)
+ * - **decision** - Architectural choices that have been made
+ * - **note** - General knowledge and information
+ * - **task** - Work items to be completed
+ * - **entity** - Domain concepts and entities
+ * - **runbook** - Operational procedures
+ * - **snippet** - Code patterns and examples
+ *
+ * Context is stored locally first (offline-first) then synced to remote.
+ *
+ * @module commands/context
+ *
+ * @example
+ * // Add a constraint
+ * substrate context add "All dates must be ISO 8601" --type constraint
+ *
+ * @example
+ * // List context with filters
+ * substrate context list --type decision --tag api
+ */
+
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
@@ -6,8 +33,22 @@ import { success, error, info, warn, formatJson, contextItem, shortId } from '..
 import { checkDuplicate } from '../lib/similarity.js';
 import ora from 'ora';
 
+/**
+ * Valid context type values.
+ * @type {string[]}
+ * @constant
+ */
 const VALID_TYPES = ['note', 'constraint', 'decision', 'task', 'entity', 'runbook', 'snippet'];
 
+/**
+ * Find workspace for the current working directory via mount lookup.
+ *
+ * Searches mounts in order of path length (most specific first) to find
+ * the workspace that contains the current directory.
+ *
+ * @returns {import('../db/local.js').Workspace|null} Matching workspace or null
+ * @private
+ */
 function findWorkspaceForCwd() {
   const db = getDb();
   const cwd = process.cwd();
@@ -23,6 +64,17 @@ function findWorkspaceForCwd() {
   return null;
 }
 
+/**
+ * The context command for Commander.js.
+ *
+ * Provides subcommands for context management:
+ * - `add <content>` - Add a new context item
+ * - `list` / `ls` - List context items with filters
+ *
+ * Also aliased as `ctx` for brevity.
+ *
+ * @type {Command}
+ */
 export const contextCommand = new Command('context')
   .alias('ctx')
   .description('Manage context objects');

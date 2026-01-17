@@ -1,16 +1,38 @@
 /**
  * Text similarity utilities for duplicate detection.
+ *
+ * This module provides functions to detect duplicate or near-duplicate
+ * context items by comparing text content using multiple similarity metrics.
+ *
+ * @module lib/similarity
  */
 
 /**
- * Normalize text for comparison.
+ * @typedef {Object} SimilarItem
+ * @property {string} id - The context item's UUID
+ * @property {string} type - The context type (note, constraint, decision, etc.)
+ * @property {string} content - The text content
+ * @property {string[]} tags - Array of tags
+ * @property {number} similarity - Similarity score as percentage (0-100)
+ */
+
+/**
+ * Normalize text for comparison by lowercasing, trimming, and collapsing whitespace.
+ *
+ * @param {string} text - The text to normalize
+ * @returns {string} Normalized text
+ * @private
  */
 function normalize(text) {
   return text.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 /**
- * Extract words from text.
+ * Extract significant words from text (words longer than 2 characters).
+ *
+ * @param {string} text - The text to extract words from
+ * @returns {string[]} Array of significant words
+ * @private
  */
 function getWords(text) {
   return normalize(text)
@@ -19,7 +41,15 @@ function getWords(text) {
 }
 
 /**
- * Calculate Jaccard similarity between two sets.
+ * Calculate Jaccard similarity coefficient between two sets.
+ *
+ * The Jaccard index is defined as the size of the intersection
+ * divided by the size of the union of two sets.
+ *
+ * @param {Set<string>} set1 - First set
+ * @param {Set<string>} set2 - Second set
+ * @returns {number} Jaccard similarity coefficient (0 to 1)
+ * @private
  */
 function jaccardSimilarity(set1, set2) {
   const intersection = new Set([...set1].filter(x => set2.has(x)));
@@ -28,8 +58,28 @@ function jaccardSimilarity(set1, set2) {
 }
 
 /**
- * Calculate similarity between two texts.
- * Returns a score from 0 to 1.
+ * Calculate similarity between two text strings.
+ *
+ * Uses a multi-strategy approach:
+ * 1. Exact match after normalization → 1.0
+ * 2. Containment (one contains the other) → ratio of lengths
+ * 3. Word overlap using Jaccard similarity
+ *
+ * @param {string} text1 - First text to compare
+ * @param {string} text2 - Second text to compare
+ * @returns {number} Similarity score from 0 (completely different) to 1 (identical)
+ *
+ * @example
+ * // Exact match
+ * textSimilarity('hello world', 'Hello World') // → 1.0
+ *
+ * @example
+ * // Containment
+ * textSimilarity('API responses', 'API responses must be JSON') // → ~0.5
+ *
+ * @example
+ * // Word overlap
+ * textSimilarity('Use JSON for API', 'API returns JSON data') // → ~0.4
  */
 export function textSimilarity(text1, text2) {
   const norm1 = normalize(text1);
@@ -55,8 +105,22 @@ export function textSimilarity(text1, text2) {
 }
 
 /**
- * Find similar context items in the database.
- * Returns items with similarity >= threshold.
+ * Find context items similar to the given content.
+ *
+ * Searches the most recent 100 context items in the workspace and returns
+ * those with similarity at or above the threshold, sorted by similarity
+ * in descending order.
+ *
+ * @param {import('better-sqlite3').Database} db - SQLite database instance
+ * @param {string} workspaceId - UUID of the workspace to search
+ * @param {string} content - The content to find similar items for
+ * @param {string} type - The context type (currently unused, reserved for type-specific matching)
+ * @param {number} [threshold=0.6] - Minimum similarity score (0 to 1) to include in results
+ * @returns {SimilarItem[]} Array of similar items, sorted by similarity descending
+ *
+ * @example
+ * const similar = findSimilar(db, workspaceId, 'API must return JSON', 'constraint', 0.5);
+ * // Returns: [{ id: '...', type: 'constraint', content: 'API responses must be JSON', similarity: 75 }]
  */
 export function findSimilar(db, workspaceId, content, type, threshold = 0.6) {
   // Get existing items of the same type (or all if checking broadly)
@@ -94,8 +158,23 @@ export function findSimilar(db, workspaceId, content, type, threshold = 0.6) {
 }
 
 /**
- * Check if content is a likely duplicate.
- * Returns the most similar item if found, null otherwise.
+ * Check if content is a likely duplicate of existing context.
+ *
+ * This is a convenience wrapper around {@link findSimilar} that returns
+ * only the most similar item if it exceeds the 70% similarity threshold.
+ * Used by the `add` command to warn users about potential duplicates.
+ *
+ * @param {import('better-sqlite3').Database} db - SQLite database instance
+ * @param {string} workspaceId - UUID of the workspace to check
+ * @param {string} content - The content to check for duplicates
+ * @param {string} type - The context type
+ * @returns {SimilarItem|null} The most similar item if ≥70% match, null otherwise
+ *
+ * @example
+ * const duplicate = checkDuplicate(db, workspaceId, 'API returns JSON', 'constraint');
+ * if (duplicate) {
+ *   console.log(`Similar content exists (${duplicate.similarity}% match)`);
+ * }
  */
 export function checkDuplicate(db, workspaceId, content, type) {
   const similar = findSimilar(db, workspaceId, content, type, 0.7);

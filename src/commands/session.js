@@ -1,9 +1,48 @@
+/**
+ * Session command - Manage work sessions for tracking agent activity.
+ *
+ * Sessions provide temporal grouping of work. When a session is active,
+ * all context added is associated with that session, enabling:
+ * - Activity tracking during agent work
+ * - Session summaries with statistics
+ * - Historical review of work done
+ *
+ * ## Workflow
+ *
+ * 1. Start a session before beginning work
+ * 2. Add context as you work (automatically tracked)
+ * 3. End session to get summary statistics
+ *
+ * @module commands/session
+ *
+ * @example
+ * // Start a session
+ * substrate session start "implementing auth"
+ *
+ * @example
+ * // Check current session
+ * substrate session status
+ *
+ * @example
+ * // End session and get stats
+ * substrate session end
+ */
+
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
 import { success, error, info, warn, formatJson, dim, shortId } from '../lib/output.js';
 import chalk from 'chalk';
 
+/**
+ * Find workspace for the current working directory via mount lookup.
+ *
+ * Searches mounts in order of path length (most specific first) to find
+ * the workspace that contains the current directory.
+ *
+ * @returns {import('../db/local.js').Workspace|null} Matching workspace or null
+ * @private
+ */
 function findWorkspaceForCwd() {
   const db = getDb();
   const cwd = process.cwd();
@@ -19,7 +58,23 @@ function findWorkspaceForCwd() {
   return null;
 }
 
-function getActiveSession(db, workspaceId) {
+/**
+ * Get the currently active session for a workspace.
+ *
+ * An active session is one where `ended_at` is NULL.
+ * Only one session can be active per workspace at a time.
+ *
+ * @param {import('better-sqlite3').Database} db - Database instance
+ * @param {string} workspaceId - Workspace UUID
+ * @returns {import('../db/local.js').Session|undefined} Active session or undefined
+ *
+ * @example
+ * const session = getActiveSession(db, workspace.id);
+ * if (session) {
+ *   console.log(`Session active: ${session.name}`);
+ * }
+ */
+export function getActiveSession(db, workspaceId) {
   return db
     .prepare(
       'SELECT * FROM sessions WHERE workspace_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1'
@@ -27,7 +82,28 @@ function getActiveSession(db, workspaceId) {
     .get(workspaceId);
 }
 
-function getSessionStats(db, session) {
+/**
+ * @typedef {Object} SessionStats
+ * @property {Object<string, number>} context - Count of items by type
+ * @property {number} totalContext - Total context items added
+ * @property {number} links - Number of links created
+ */
+
+/**
+ * Get statistics for a session.
+ *
+ * Counts context items and links created during the session's time window.
+ * For active sessions, uses current time as the end boundary.
+ *
+ * @param {import('better-sqlite3').Database} db - Database instance
+ * @param {import('../db/local.js').Session} session - Session to get stats for
+ * @returns {SessionStats} Statistics about the session
+ *
+ * @example
+ * const stats = getSessionStats(db, session);
+ * console.log(`Added ${stats.totalContext} items and ${stats.links} links`);
+ */
+export function getSessionStats(db, session) {
   const endTime = session.ended_at || new Date().toISOString();
 
   const stats = db
@@ -69,6 +145,14 @@ function getSessionStats(db, session) {
   };
 }
 
+/**
+ * Format a duration between two timestamps for display.
+ *
+ * @param {string} startedAt - ISO 8601 start timestamp
+ * @param {string|null} endedAt - ISO 8601 end timestamp, or null for now
+ * @returns {string} Human-readable duration (e.g., "2h 15m" or "45m")
+ * @private
+ */
 function formatDuration(startedAt, endedAt) {
   const start = new Date(startedAt);
   const end = endedAt ? new Date(endedAt) : new Date();
@@ -83,6 +167,17 @@ function formatDuration(startedAt, endedAt) {
   return `${minutes}m`;
 }
 
+/**
+ * The session command for Commander.js.
+ *
+ * Provides subcommands for session management:
+ * - `start [name]` - Start a new work session
+ * - `end` - End the current active session
+ * - `status` - Show current session status
+ * - `list` / `ls` - List recent sessions
+ *
+ * @type {Command}
+ */
 export const sessionCommand = new Command('session').description(
   'Manage work sessions for tracking agent activity'
 );
