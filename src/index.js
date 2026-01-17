@@ -33,26 +33,26 @@ program.addCommand(digestCommand);
 program.addCommand(recallCommand);
 
 // Shorthands for common operations
-program.addCommand(addCommand);      // substrate add = substrate context add
-program.addCommand(lsCommand);       // substrate ls = substrate context list
-program.addCommand(statusCommand);   // substrate status = substrate mount status
+program.addCommand(addCommand); // substrate add = substrate context add
+program.addCommand(lsCommand); // substrate ls = substrate context list
+program.addCommand(statusCommand); // substrate status = substrate mount status
 
 // Configuration and MCP
-program.addCommand(configCommand);   // substrate config
-program.addCommand(mcpCommand);      // substrate mcp serve
-program.addCommand(projectCommand);  // substrate project id/info/pin/unpin
+program.addCommand(configCommand); // substrate config
+program.addCommand(mcpCommand); // substrate mcp serve
+program.addCommand(projectCommand); // substrate project id/info/pin/unpin
 
 // Sync
-program.addCommand(syncCommand);     // substrate sync push/pull/status
+program.addCommand(syncCommand); // substrate sync push/pull/status
 
 // Graph exploration
-program.addCommand(relatedCommand);  // substrate related <id>
+program.addCommand(relatedCommand); // substrate related <id>
 
 // Export
-program.addCommand(dumpCommand);     // substrate dump
+program.addCommand(dumpCommand); // substrate dump
 
 // Auth
-program.addCommand(authCommand);     // substrate auth signup/verify/login/logout/keys/token
+program.addCommand(authCommand); // substrate auth signup/verify/login/logout/keys/token
 
 // Default action: show help
 program.action(async () => {

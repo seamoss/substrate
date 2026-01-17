@@ -35,19 +35,14 @@ const EXTRACTION_PROMPTS = [
   {
     type: 'entity',
     question: 'What key domain concepts were introduced?',
-    examples: [
-      'New data models',
-      'Service names',
-      'Business concepts',
-      'API resources'
-    ]
+    examples: ['New data models', 'Service names', 'Business concepts', 'API resources']
   }
 ];
 
 export const extractCommand = new Command('extract')
   .description('Show extraction checklist for capturing context after completing work')
   .option('--json', 'Output as JSON')
-  .action((options) => {
+  .action(options => {
     if (options.json) {
       console.log(JSON.stringify({ prompts: EXTRACTION_PROMPTS }, null, 2));
       return;

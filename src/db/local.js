@@ -76,14 +76,14 @@ export function getDb() {
 
 function runMigrations(db) {
   // Check and add deleted_at to context if missing
-  const contextInfo = db.prepare("PRAGMA table_info(context)").all();
+  const contextInfo = db.prepare('PRAGMA table_info(context)').all();
   const hasDeletedAt = contextInfo.some(col => col.name === 'deleted_at');
   if (!hasDeletedAt) {
     db.exec('ALTER TABLE context ADD COLUMN deleted_at TEXT');
   }
 
   // Check and add deleted_at to workspaces if missing
-  const workspaceInfo = db.prepare("PRAGMA table_info(workspaces)").all();
+  const workspaceInfo = db.prepare('PRAGMA table_info(workspaces)').all();
   const wsHasDeletedAt = workspaceInfo.some(col => col.name === 'deleted_at');
   if (!wsHasDeletedAt) {
     db.exec('ALTER TABLE workspaces ADD COLUMN deleted_at TEXT');

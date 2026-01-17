@@ -25,7 +25,7 @@ export const syncCommand = new Command('sync')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     let workspace;
     const db = getDb();
 
@@ -96,7 +96,7 @@ syncCommand
   .description('Show sync status')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     let workspace;
     const db = getDb();
 
@@ -159,7 +159,7 @@ syncCommand
   .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     let workspace;
     const db = getDb();
 
@@ -218,7 +218,7 @@ syncCommand
   .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     let workspace;
     const db = getDb();
 

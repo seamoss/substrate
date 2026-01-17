@@ -31,7 +31,7 @@ substrate init your-project
 
 Create a `CLAUDE.md` file in your project root with the Substrate protocol:
 
-```markdown
+````markdown
 # Project Name
 
 ## Substrate Context
@@ -45,6 +45,7 @@ Run this command first to load project context:
 ```bash
 substrate brief --compact
 ```
+````
 
 Internalize all constraints and decisions before proceeding with any work.
 
@@ -52,18 +53,19 @@ Internalize all constraints and decisions before proceeding with any work.
 
 When you discover or establish any of the following, capture it immediately:
 
-| Discovery | Command |
-|-----------|---------|
-| Hard rule or constraint | `substrate add "..." --type constraint` |
-| Architectural decision | `substrate add "..." --type decision` |
-| Important context | `substrate add "..." --type note` |
-| Related concepts | `substrate link add <id1> <id2> --relation <type>` |
+| Discovery               | Command                                            |
+| ----------------------- | -------------------------------------------------- |
+| Hard rule or constraint | `substrate add "..." --type constraint`            |
+| Architectural decision  | `substrate add "..." --type decision`              |
+| Important context       | `substrate add "..." --type note`                  |
+| Related concepts        | `substrate link add <id1> <id2> --relation <type>` |
 
 Use tags to categorize: `--tag api`, `--tag auth`, `--tag database`
 
 ### On Task Completion
 
 After completing significant work, capture:
+
 1. Any constraints that were implicit but should be explicit
 2. Decisions made (with brief rationale)
 3. Relationships between concepts
@@ -78,7 +80,8 @@ substrate link add X Y       # Link related items
 substrate digest             # Session summary
 substrate recall "query"     # Search history
 ```
-```
+
+````
 
 ## How It Works
 
@@ -104,15 +107,15 @@ This project uses Substrate for persistent context.
 
 ```bash
 substrate brief --compact
-```
+````
 
 ### Capture Protocol
 
-| Type | When to Use | Example |
-|------|-------------|---------|
-| constraint | Immutable rules | `substrate add "All prices in cents" --type constraint --tag payments` |
-| decision | Architecture choices | `substrate add "Using Stripe for payments" --type decision --tag payments` |
-| note | General context | `substrate add "Black Friday sale runs Nov 24-27" --type note --tag business` |
+| Type       | When to Use          | Example                                                                       |
+| ---------- | -------------------- | ----------------------------------------------------------------------------- |
+| constraint | Immutable rules      | `substrate add "All prices in cents" --type constraint --tag payments`        |
+| decision   | Architecture choices | `substrate add "Using Stripe for payments" --type decision --tag payments`    |
+| note       | General context      | `substrate add "Black Friday sale runs Nov 24-27" --type note --tag business` |
 
 ### Commands
 
@@ -129,7 +132,8 @@ substrate sync push          # Share with team
 - PostgreSQL
 - Stripe for payments
 - Tailwind CSS
-```
+
+````
 
 ## Tips
 
@@ -145,7 +149,7 @@ Tell Claude exactly what kinds of things to capture:
 - Security constraints (auth requirements, data handling)
 - Integration details (API keys location, endpoint formats)
 - Business rules that affect code logic
-```
+````
 
 ### Use Tags Consistently
 
@@ -155,6 +159,7 @@ Define your tag taxonomy in CLAUDE.md:
 ### Tags
 
 Use these tags for categorization:
+
 - `api` — API endpoints and contracts
 - `auth` — Authentication and authorization
 - `db` — Database and data models
@@ -166,7 +171,7 @@ Use these tags for categorization:
 
 Always include a quick reference section so Claude can easily find commands:
 
-```markdown
+````markdown
 ### Quick Reference
 
 ```bash
@@ -179,6 +184,8 @@ substrate link add X Y       # Link items
 substrate digest             # What was added this session
 substrate recall "search"    # Find past context
 ```
+````
+
 ```
 
 ## Verifying It Works
@@ -186,8 +193,10 @@ substrate recall "search"    # Find past context
 After setting up, start a new Claude Code session and ask Claude to check the context:
 
 ```
+
 What constraints and decisions are stored for this project?
-```
+
+````
 
 Claude should run `substrate brief --compact` and report back the stored context.
 
@@ -205,9 +214,10 @@ Make sure:
 Check authentication:
 ```bash
 substrate auth status
-```
+````
 
 Check you're in the right workspace:
+
 ```bash
 substrate status
 ```
@@ -215,6 +225,7 @@ substrate status
 ### Team members see different context
 
 Make sure everyone has synced:
+
 ```bash
 substrate sync pull   # Get latest from remote
 substrate sync push   # Push your changes

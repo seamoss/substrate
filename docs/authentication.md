@@ -5,6 +5,7 @@ Substrate uses a token-based authentication system designed for CLI-first workfl
 ## Overview
 
 Authentication in Substrate provides:
+
 - **User identity** — Anonymous accounts, no email required
 - **API keys** — Personal access tokens for CLI and scripts
 - **Workspace tokens** — Scoped tokens for CI/CD and agents
@@ -32,6 +33,7 @@ substrate auth init
 This creates an anonymous account and generates your first API key. No email required.
 
 **Output:**
+
 ```
 ✓ Account created
 → User ID: user:abc123xyz
@@ -47,6 +49,7 @@ substrate auth status
 ```
 
 **Output:**
+
 ```
 ✓ Authenticated
   User ID: user:abc123xyz
@@ -68,6 +71,7 @@ Credentials are stored in `~/.substrate/auth.json`:
 ```
 
 **Security notes:**
+
 - This file contains your secret API key
 - It has 0600 permissions (owner read/write only)
 - Don't commit it to version control
@@ -90,11 +94,13 @@ The prefix `sub_` identifies it as a Substrate user token.
 ### Managing Keys
 
 **List your keys:**
+
 ```bash
 substrate auth keys list
 ```
 
 **Create a new key:**
+
 ```bash
 substrate auth keys create laptop
 substrate auth keys create ci-server
@@ -102,6 +108,7 @@ substrate auth keys create backup
 ```
 
 **Revoke a key:**
+
 ```bash
 substrate auth keys revoke <key-id>
 ```
@@ -115,6 +122,7 @@ substrate auth keys revoke <key-id>
 ## Workspace Tokens
 
 Workspace tokens provide scoped access to a single workspace. Ideal for:
+
 - CI/CD pipelines that only need one project
 - AI agents with limited permissions
 - Third-party integrations
@@ -143,21 +151,23 @@ substrate auth token create <workspace-id> temp-access --expires 30
 ### Managing Workspace Tokens
 
 **List tokens for a workspace:**
+
 ```bash
 substrate auth token list <workspace-id>
 ```
 
 **Revoke a token:**
+
 ```bash
 substrate auth token revoke <token-id>
 ```
 
 ### Scope Options
 
-| Scope | Permissions |
-|-------|-------------|
-| `read` | Read context, brief, sync pull |
-| `read_write` | Full access (default) |
+| Scope        | Permissions                    |
+| ------------ | ------------------------------ |
+| `read`       | Read context, brief, sync pull |
+| `read_write` | Full access (default)          |
 
 ## Using Tokens in CI/CD
 

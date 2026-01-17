@@ -43,8 +43,7 @@ function clearAuth() {
   }
 }
 
-export const authCommand = new Command('auth')
-  .description('Manage authentication');
+export const authCommand = new Command('auth').description('Manage authentication');
 
 // auth init (primary flow)
 authCommand
@@ -52,7 +51,7 @@ authCommand
   .description('Initialize authentication (creates account and API key)')
   .option('--json', 'Output as JSON')
   .option('--force', 'Overwrite existing credentials')
-  .action(async (options) => {
+  .action(async options => {
     const existing = loadAuth();
 
     if (existing?.api_key && !options.force) {
@@ -103,7 +102,7 @@ authCommand
   .command('status')
   .description('Show current auth status')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     const auth = loadAuth();
 
     if (!auth?.api_key) {
@@ -148,7 +147,7 @@ authCommand
   .command('logout')
   .description('Log out and clear credentials')
   .option('--json', 'Output as JSON')
-  .action((options) => {
+  .action(options => {
     clearAuth();
 
     if (options.json) {
@@ -159,9 +158,7 @@ authCommand
   });
 
 // auth keys (subcommand group)
-const keysCommand = authCommand
-  .command('keys')
-  .description('Manage API keys');
+const keysCommand = authCommand.command('keys').description('Manage API keys');
 
 // auth keys list
 keysCommand
@@ -169,7 +166,7 @@ keysCommand
   .alias('ls')
   .description('List your API keys')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     const auth = loadAuth();
     if (!auth?.api_key) {
       error('Not logged in');
@@ -270,9 +267,7 @@ keysCommand
   });
 
 // auth token (subcommand group for workspace tokens)
-const tokenCommand = authCommand
-  .command('token')
-  .description('Manage workspace tokens');
+const tokenCommand = authCommand.command('token').description('Manage workspace tokens');
 
 // auth token create
 tokenCommand
@@ -293,7 +288,12 @@ tokenCommand
     const spinner = options.json ? null : ora('Creating token...').start();
 
     try {
-      const result = await api.createWorkspaceToken(workspace, name, options.scope, options.expires);
+      const result = await api.createWorkspaceToken(
+        workspace,
+        name,
+        options.scope,
+        options.expires
+      );
       spinner?.stop();
 
       if (options.json) {
@@ -344,7 +344,9 @@ tokenCommand
         console.log();
         result.tokens.forEach(token => {
           const scopeColor = token.scope === 'read' ? chalk.yellow : chalk.green;
-          console.log(`  ${chalk.cyan(token.token_prefix)}  ${token.name}  ${scopeColor(token.scope)}`);
+          console.log(
+            `  ${chalk.cyan(token.token_prefix)}  ${token.name}  ${scopeColor(token.scope)}`
+          );
           if (token.expires_at) {
             dim(`    Expires: ${token.expires_at}`);
           }

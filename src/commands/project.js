@@ -13,15 +13,16 @@ import chalk from 'chalk';
 import { randomUUID } from 'crypto';
 import ora from 'ora';
 
-export const projectCommand = new Command('project')
-  .description('Manage project identity and pinning');
+export const projectCommand = new Command('project').description(
+  'Manage project identity and pinning'
+);
 
 // project id
 projectCommand
   .command('id')
   .description('Show current project ID')
   .option('--json', 'Output as JSON')
-  .action((options) => {
+  .action(options => {
     const projectId = getProjectId();
 
     if (!projectId) {
@@ -47,7 +48,7 @@ projectCommand
   .command('info')
   .description('Show project details')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     const projectId = getProjectId();
 
     if (!projectId) {
@@ -92,11 +93,13 @@ projectCommand
       project_id: projectId,
       name: workspace?.name || remoteWorkspace?.name || null,
       description: workspace?.description || remoteWorkspace?.description || null,
-      local: workspace ? {
-        id: workspace.id,
-        synced_at: workspace.synced_at,
-        remote_id: workspace.remote_id
-      } : null,
+      local: workspace
+        ? {
+            id: workspace.id,
+            synced_at: workspace.synced_at,
+            remote_id: workspace.remote_id
+          }
+        : null,
       remote_status: remoteStatus
     };
 
@@ -172,10 +175,12 @@ projectCommand
           const now = new Date().toISOString();
           const localId = randomUUID();
 
-          db.prepare(`
+          db.prepare(
+            `
             INSERT INTO workspaces (id, name, description, project_id, remote_id, created_at, updated_at, synced_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(
+          `
+          ).run(
             localId,
             result.workspace.name,
             result.workspace.description || '',
@@ -194,7 +199,7 @@ projectCommand
         // Remote not available or project not found
         if (err.message?.includes('404')) {
           error('Project not found on remote server');
-          dim('  The project ID may be incorrect or the project hasn\'t been synced yet');
+          dim("  The project ID may be incorrect or the project hasn't been synced yet");
           process.exit(1);
         }
         // Offline - we'll create a placeholder
@@ -203,10 +208,12 @@ projectCommand
         const now = new Date().toISOString();
         const localId = randomUUID();
 
-        db.prepare(`
+        db.prepare(
+          `
           INSERT INTO workspaces (id, name, description, project_id, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?, ?)
-        `).run(localId, 'pending-sync', '', id, now, now);
+        `
+        ).run(localId, 'pending-sync', '', id, now, now);
 
         workspace = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(localId);
       }
@@ -228,7 +235,7 @@ projectCommand
   .command('unpin')
   .description('Remove project pinning from this directory')
   .option('--delete-local', 'Also delete local workspace data')
-  .action((options) => {
+  .action(options => {
     const configPath = getProjectConfigPath();
 
     if (!existsSync(configPath)) {

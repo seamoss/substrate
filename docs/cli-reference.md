@@ -5,31 +5,32 @@ Complete documentation for the `substrate` command-line interface.
 ## Global Options
 
 All commands support:
+
 - `--help`, `-h` — Show help
 - `--json` — Output as JSON (where applicable)
 
 ## Commands Overview
 
-| Command | Description |
-|---------|-------------|
-| `init` | Initialize a new workspace |
-| `add` | Add context (shorthand) |
-| `ls` | List context (shorthand) |
-| `status` | Show mount status (shorthand) |
-| `brief` | Get context for agents |
-| `context` | Manage context objects |
-| `mount` | Manage workspace mounts |
-| `link` | Manage relationships |
-| `related` | Explore graph connections |
-| `sync` | Sync with remote server |
-| `project` | Manage project identity |
-| `config` | Manage configuration |
-| `mcp` | MCP server for agents |
-| `auth` | Manage authentication |
-| `digest` | Session summary |
-| `recall` | Search history |
-| `extract` | Extraction checklist |
-| `dump` | Export to markdown |
+| Command   | Description                   |
+| --------- | ----------------------------- |
+| `init`    | Initialize a new workspace    |
+| `add`     | Add context (shorthand)       |
+| `ls`      | List context (shorthand)      |
+| `status`  | Show mount status (shorthand) |
+| `brief`   | Get context for agents        |
+| `context` | Manage context objects        |
+| `mount`   | Manage workspace mounts       |
+| `link`    | Manage relationships          |
+| `related` | Explore graph connections     |
+| `sync`    | Sync with remote server       |
+| `project` | Manage project identity       |
+| `config`  | Manage configuration          |
+| `mcp`     | MCP server for agents         |
+| `auth`    | Manage authentication         |
+| `digest`  | Session summary               |
+| `recall`  | Search history                |
+| `extract` | Extraction checklist          |
+| `dump`    | Export to markdown            |
 
 ---
 
@@ -42,19 +43,23 @@ substrate init [name] [options]
 ```
 
 **Arguments:**
+
 - `name` — Workspace name (default: directory name)
 
 **Options:**
+
 - `-d, --description <text>` — Workspace description
 - `--json` — Output as JSON
 
 **Examples:**
+
 ```bash
 substrate init myproject
 substrate init myproject --description "Main API service"
 ```
 
 **What it does:**
+
 1. Creates a workspace with a unique project ID
 2. Syncs workspace to remote server
 3. Mounts current directory to workspace
@@ -71,9 +76,11 @@ substrate add <content> [options]
 ```
 
 **Arguments:**
+
 - `content` — The context content
 
 **Options:**
+
 - `-t, --type <type>` — Context type (default: `note`)
 - `--tag <tags>` — Comma-separated tags
 - `-s, --scope <scope>` — Scope path (default: `*`)
@@ -81,6 +88,7 @@ substrate add <content> [options]
 - `--json` — Output as JSON
 
 **Context Types:**
+
 - `constraint` — Hard rules, immutable facts
 - `decision` — Architectural choices
 - `note` — General knowledge
@@ -90,6 +98,7 @@ substrate add <content> [options]
 - `snippet` — Code patterns
 
 **Examples:**
+
 ```bash
 substrate add "All dates must be ISO 8601"
 substrate add "Using UUID v4 for IDs" --type decision
@@ -108,6 +117,7 @@ substrate ls [options]
 ```
 
 **Options:**
+
 - `-t, --type <type>` — Filter by type
 - `--tag <tag>` — Filter by tag
 - `-n, --limit <n>` — Limit results (default: 20)
@@ -115,6 +125,7 @@ substrate ls [options]
 - `--json` — Output as JSON
 
 **Examples:**
+
 ```bash
 substrate ls
 substrate ls --type constraint
@@ -133,12 +144,15 @@ substrate status [dir] [options]
 ```
 
 **Arguments:**
+
 - `dir` — Directory to check (default: `.`)
 
 **Options:**
+
 - `--json` — Output as JSON
 
 **Examples:**
+
 ```bash
 substrate status
 substrate status ~/projects/api
@@ -155,9 +169,11 @@ substrate brief [path] [options]
 ```
 
 **Arguments:**
+
 - `path` — Path to get context for (default: current directory)
 
 **Options:**
+
 - `--compact` — Output prompt text only
 - `--human` — Human-readable format
 - `--no-links` — Exclude relationship info
@@ -166,6 +182,7 @@ substrate brief [path] [options]
 - `--json` — Output as JSON (default)
 
 **Examples:**
+
 ```bash
 substrate brief                    # JSON output
 substrate brief --compact          # Plain text for prompts
@@ -174,6 +191,7 @@ substrate brief --tag api,auth     # Filter by tags
 ```
 
 **Output includes:**
+
 - Workspace info
 - Constraints (highest priority)
 - Decisions
@@ -217,15 +235,18 @@ substrate mount add <dir> [options]
 ```
 
 **Arguments:**
+
 - `dir` — Directory to mount
 
 **Options:**
+
 - `-w, --workspace <name>` — Workspace name (required)
 - `-s, --scope <path>` — Scope within directory (default: `*`)
 - `-t, --tags <tags>` — Comma-separated tags
 - `--json` — Output as JSON
 
 **Examples:**
+
 ```bash
 substrate mount add . --workspace myproject
 substrate mount add ./api --workspace platform --scope "src/*"
@@ -272,15 +293,18 @@ substrate link add <from> <to> [options]
 ```
 
 **Arguments:**
+
 - `from` — Source context ID (short ID)
 - `to` — Target context ID (short ID)
 
 **Options:**
+
 - `-r, --relation <type>` — Relation type (default: `relates_to`)
 - `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Relation types:**
+
 - `relates_to` — General relationship
 - `depends_on` — Dependency
 - `blocks` — Blocking relationship
@@ -289,6 +313,7 @@ substrate link add <from> <to> [options]
 - `references` — Reference
 
 **Examples:**
+
 ```bash
 substrate link add abc123 def456
 substrate link add abc123 def456 --relation implements
@@ -304,6 +329,7 @@ substrate link ls [id] [options]
 ```
 
 **Arguments:**
+
 - `id` — Context ID to show links for (optional, shows all if omitted)
 
 ### link remove
@@ -326,15 +352,18 @@ substrate related <id> [options]
 ```
 
 **Arguments:**
+
 - `id` — Context ID to explore from
 
 **Options:**
+
 - `-d, --depth <n>` — Traversal depth, 1-2 (default: 1)
 - `-w, --workspace <name>` — Workspace name
 - `--local` — Use local cache only
 - `--json` — Output as JSON
 
 **Examples:**
+
 ```bash
 substrate related abc123
 substrate related abc123 --depth 2
@@ -352,6 +381,7 @@ substrate sync [options]
 ```
 
 **Options:**
+
 - `-w, --workspace <name>` — Workspace name
 - `-v, --verbose` — Show detailed output
 - `--json` — Output as JSON
@@ -413,9 +443,11 @@ substrate project pin <id> [options]
 ```
 
 **Arguments:**
+
 - `id` — Project ID (UUID) to pin to
 
 **Options:**
+
 - `--force` — Overwrite existing config
 
 ### project unpin
@@ -427,6 +459,7 @@ substrate project unpin [options]
 ```
 
 **Options:**
+
 - `--delete-local` — Also delete local workspace data
 
 ---
@@ -452,6 +485,7 @@ substrate config strategy <mode>
 ```
 
 **Modes:**
+
 - `instructions` — Agent reads CLAUDE.md and runs CLI
 - `mcp` — Agent uses native MCP tools
 
@@ -510,6 +544,7 @@ substrate auth init [options]
 ```
 
 **Options:**
+
 - `--force` — Overwrite existing credentials
 - `--json` — Output as JSON
 
@@ -552,6 +587,7 @@ substrate auth token revoke <id>
 ```
 
 **Options for create:**
+
 - `-s, --scope <scope>` — `read` or `read_write` (default: `read_write`)
 - `-e, --expires <days>` — Expiration in days
 
@@ -568,11 +604,13 @@ substrate digest [options]
 ```
 
 **Options:**
+
 - `--hours <n>` — Time window (default: 8)
 - `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Examples:**
+
 ```bash
 substrate digest              # Last 8 hours
 substrate digest --hours 24   # Last 24 hours
@@ -589,9 +627,11 @@ substrate recall [query] [options]
 ```
 
 **Arguments:**
+
 - `query` — Search query (optional)
 
 **Options:**
+
 - `-t, --type <type>` — Filter by type
 - `--hours <n>` — Time window (default: 24)
 - `-n, --limit <n>` — Limit results (default: 10)
@@ -599,6 +639,7 @@ substrate recall [query] [options]
 - `--json` — Output as JSON
 
 **Examples:**
+
 ```bash
 substrate recall "database"
 substrate recall --type decision
@@ -616,6 +657,7 @@ substrate extract [options]
 ```
 
 **Options:**
+
 - `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
@@ -632,12 +674,14 @@ substrate dump [options]
 ```
 
 **Options:**
+
 - `-o, --output <path>` — Output file (default: `.substrate/CONTEXT.md`)
 - `--flat` — Flat list without sections
 - `--no-links` — Exclude relationships
 - `-w, --workspace <name>` — Workspace name
 
 **Examples:**
+
 ```bash
 substrate dump
 substrate dump -o docs/CONTEXT.md
@@ -648,8 +692,8 @@ substrate dump --flat --no-links
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable            | Description    | Default                 |
+| ------------------- | -------------- | ----------------------- |
 | `SUBSTRATE_API_URL` | API server URL | `http://localhost:3000` |
 
 ---
@@ -657,18 +701,18 @@ substrate dump --flat --no-links
 ## Exit Codes
 
 | Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Error |
+| ---- | ------- |
+| 0    | Success |
+| 1    | Error   |
 
 ---
 
 ## Configuration Files
 
-| File | Purpose |
-|------|---------|
-| `~/.substrate/auth.json` | Authentication credentials |
-| `~/.substrate/config.json` | Global configuration |
-| `~/.substrate/log` | Global audit log |
-| `.substrate/config.json` | Project-level config (project ID) |
-| `.substrate/log` | Project-level audit log |
+| File                       | Purpose                           |
+| -------------------------- | --------------------------------- |
+| `~/.substrate/auth.json`   | Authentication credentials        |
+| `~/.substrate/config.json` | Global configuration              |
+| `~/.substrate/log`         | Global audit log                  |
+| `.substrate/config.json`   | Project-level config (project ID) |
+| `.substrate/log`           | Project-level audit log           |

@@ -5,6 +5,7 @@ This guide explains how to integrate Substrate with [GitHub Copilot](https://git
 ## Overview
 
 GitHub Copilot supports custom instructions through:
+
 - **Repository instructions** (`.github/copilot-instructions.md`) — Applies to entire repo
 - **Path-specific instructions** (`.github/instructions/*.instructions.md`) — Scoped to specific files
 
@@ -28,7 +29,7 @@ substrate init your-project
 
 Create `.github/copilot-instructions.md` in your project:
 
-```markdown
+````markdown
 # Project Context with Substrate
 
 This project uses Substrate for persistent context management across sessions.
@@ -40,6 +41,7 @@ Before starting any work, load the project context:
 ```bash
 substrate brief --compact
 ```
+````
 
 This returns all constraints, decisions, and notes for this project. Internalize them before proceeding.
 
@@ -48,49 +50,55 @@ This returns all constraints, decisions, and notes for this project. Internalize
 When you discover or establish important context, capture it immediately:
 
 ### Constraints (immutable rules)
+
 ```bash
 substrate add "All API responses must be JSON" --type constraint --tag api
 ```
 
 ### Decisions (architectural choices)
+
 ```bash
 substrate add "Using PostgreSQL for ACID compliance" --type decision --tag database
 ```
 
 ### Notes (general context)
+
 ```bash
 substrate add "Frontend team prefers Tailwind" --type note --tag ui
 ```
 
 ### Relationships
+
 ```bash
 substrate link add <id1> <id2> --relation implements
 ```
 
 ## Quick Reference
 
-| Action | Command |
-|--------|---------|
-| Load context | `substrate brief --compact` |
-| Add constraint | `substrate add "..." --type constraint` |
-| Add decision | `substrate add "..." --type decision` |
-| Add note | `substrate add "..." --type note` |
-| List recent | `substrate ls` |
-| Filter by tag | `substrate ls --tag api` |
-| Link items | `substrate link add X Y` |
-| Session summary | `substrate digest` |
-| Search history | `substrate recall "query"` |
+| Action          | Command                                 |
+| --------------- | --------------------------------------- |
+| Load context    | `substrate brief --compact`             |
+| Add constraint  | `substrate add "..." --type constraint` |
+| Add decision    | `substrate add "..." --type decision`   |
+| Add note        | `substrate add "..." --type note`       |
+| List recent     | `substrate ls`                          |
+| Filter by tag   | `substrate ls --tag api`                |
+| Link items      | `substrate link add X Y`                |
+| Session summary | `substrate digest`                      |
+| Search history  | `substrate recall "query"`              |
 
 ## Tags
 
 Use these tags for categorization:
+
 - `api` — API endpoints and contracts
 - `auth` — Authentication and authorization
 - `db` — Database and data models
 - `ui` — Frontend and UX
 - `infra` — Infrastructure and deployment
 - `security` — Security requirements
-```
+
+````
 
 ## Path-Specific Instructions
 
@@ -110,13 +118,14 @@ When working on API files:
 1. First check API-specific context:
    ```bash
    substrate ls --tag api
-   ```
+````
 
 2. After modifying endpoints, capture changes:
    ```bash
    substrate add "POST /users requires Bearer token" --type constraint --tag api
    ```
-```
+
+````
 
 ### Frontend context (`.github/instructions/frontend.instructions.md`)
 
@@ -132,13 +141,14 @@ When working on frontend files:
 1. Check UI context:
    ```bash
    substrate ls --tag ui
-   ```
+````
 
 2. Capture component decisions:
    ```bash
    substrate add "Using shadcn/ui for all form components" --type decision --tag ui
    ```
-```
+
+````
 
 ## How It Works
 
@@ -172,14 +182,16 @@ The instructions file should tell Copilot *how* to work with Substrate, not cont
 **Good:**
 ```markdown
 Load project context with: substrate brief --compact
-```
+````
 
 **Avoid:**
+
 ```markdown
 Here are all the project constraints:
+
 - Constraint 1...
 - Constraint 2...
-(This duplicates what Substrate stores)
+  (This duplicates what Substrate stores)
 ```
 
 ### Include Tech Stack Summary
@@ -188,6 +200,7 @@ Copilot benefits from knowing your stack:
 
 ```markdown
 ## Tech Stack
+
 - Next.js 14 (App Router)
 - PostgreSQL with Prisma
 - Tailwind CSS

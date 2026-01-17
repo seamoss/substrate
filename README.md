@@ -18,6 +18,7 @@ npm install -g substrate-cli
 ```
 
 Or from source:
+
 ```bash
 git clone <repo-url> substrate
 cd substrate/cli
@@ -43,25 +44,25 @@ substrate brief --compact
 
 ## Core Concepts
 
-| Concept | Description |
-|---------|-------------|
-| **Workspace** | A shared context universe for a team or project |
-| **Mount** | Binds a workspace to a local directory |
-| **Context** | Typed objects: constraints, decisions, notes, tasks, entities |
-| **Links** | Graph relationships between context objects |
-| **Brief** | Agent-optimized context retrieval |
+| Concept       | Description                                                   |
+| ------------- | ------------------------------------------------------------- |
+| **Workspace** | A shared context universe for a team or project               |
+| **Mount**     | Binds a workspace to a local directory                        |
+| **Context**   | Typed objects: constraints, decisions, notes, tasks, entities |
+| **Links**     | Graph relationships between context objects                   |
+| **Brief**     | Agent-optimized context retrieval                             |
 
 ## Context Types
 
-| Type | Priority | Use For |
-|------|----------|---------|
-| `constraint` | Highest | Hard rules, immutable facts |
-| `decision` | High | Architectural choices with rationale |
-| `note` | Medium | General knowledge |
-| `task` | Low | Work items |
-| `entity` | Low | Domain concepts |
-| `runbook` | Low | Operational procedures |
-| `snippet` | Low | Canonical code patterns |
+| Type         | Priority | Use For                              |
+| ------------ | -------- | ------------------------------------ |
+| `constraint` | Highest  | Hard rules, immutable facts          |
+| `decision`   | High     | Architectural choices with rationale |
+| `note`       | Medium   | General knowledge                    |
+| `task`       | Low      | Work items                           |
+| `entity`     | Low      | Domain concepts                      |
+| `runbook`    | Low      | Operational procedures               |
+| `snippet`    | Low      | Canonical code patterns              |
 
 ## Example Workflow
 

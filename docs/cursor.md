@@ -5,6 +5,7 @@ This guide explains how to integrate Substrate with [Cursor](https://cursor.com)
 ## Overview
 
 Cursor uses a rules system to provide context to its AI. You can configure Substrate integration using either:
+
 - **Project Rules** (`.cursor/rules/*.mdc`) — Recommended, version-controlled
 - **Legacy `.cursorrules`** — Single file in project root
 
@@ -28,7 +29,7 @@ substrate init your-project
 
 Create `.cursor/rules/substrate.mdc` in your project:
 
-```markdown
+````markdown
 ---
 description: Substrate context management protocol
 globs:
@@ -46,6 +47,7 @@ Run this command first to load project context:
 ```bash
 substrate brief --compact
 ```
+````
 
 Internalize all constraints and decisions before proceeding.
 
@@ -53,12 +55,12 @@ Internalize all constraints and decisions before proceeding.
 
 Capture discoveries immediately:
 
-| Discovery | Command |
-|-----------|---------|
-| Hard rule | `substrate add "..." --type constraint` |
-| Architecture decision | `substrate add "..." --type decision` |
-| Important context | `substrate add "..." --type note` |
-| Related concepts | `substrate link add <id1> <id2>` |
+| Discovery             | Command                                 |
+| --------------------- | --------------------------------------- |
+| Hard rule             | `substrate add "..." --type constraint` |
+| Architecture decision | `substrate add "..." --type decision`   |
+| Important context     | `substrate add "..." --type note`       |
+| Related concepts      | `substrate link add <id1> <id2>`        |
 
 Use tags: `--tag api`, `--tag auth`, `--tag database`
 
@@ -72,7 +74,8 @@ substrate link add X Y       # Link items
 substrate digest             # Session summary
 substrate recall "query"     # Search history
 ```
-```
+
+````
 
 ### Alternative: Legacy .cursorrules
 
@@ -96,7 +99,7 @@ Run: substrate brief --compact
 - substrate add "..." -t TYPE (save context)
 - substrate ls (list recent)
 - substrate digest (session summary)
-```
+````
 
 ## How It Works
 
@@ -111,7 +114,7 @@ Run: substrate brief --compact
 
 Create rules that only apply to specific files:
 
-```markdown
+````markdown
 ---
 description: API-specific Substrate rules
 globs:
@@ -124,6 +127,8 @@ When working on API files, always check for API-related context:
 ```bash
 substrate ls --tag api
 ```
+````
+
 ```
 
 ### Combine with Other Rules
@@ -131,11 +136,13 @@ substrate ls --tag api
 You can have multiple rule files. Substrate rules work alongside your coding style rules:
 
 ```
+
 .cursor/rules/
-├── substrate.mdc      # Context management
-├── typescript.mdc     # TypeScript conventions
-└── testing.mdc        # Testing guidelines
-```
+├── substrate.mdc # Context management
+├── typescript.mdc # TypeScript conventions
+└── testing.mdc # Testing guidelines
+
+````
 
 ### Add Project-Specific Tags
 
@@ -150,7 +157,7 @@ Always use these tags when adding context:
 - `db` — Database, queries, migrations
 - `ui` — Components, styling
 - `perf` — Performance considerations
-```
+````
 
 ## Verifying It Works
 

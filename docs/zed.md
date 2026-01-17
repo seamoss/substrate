@@ -5,6 +5,7 @@ This guide explains how to integrate Substrate with [Zed](https://zed.dev), the 
 ## Overview
 
 Zed's AI assistant supports custom context through:
+
 - **Rules files** (`.rules`) — Project-specific instructions
 - **@mentions** — Reference files, symbols, and rules in chat
 - **MCP support** — Model Context Protocol integration
@@ -29,7 +30,7 @@ substrate init your-project
 
 Create a `.rules` file in your project root:
 
-```markdown
+````markdown
 # Substrate Context Protocol
 
 This project uses Substrate for persistent context management.
@@ -41,6 +42,7 @@ Always run this command first to load project context:
 ```bash
 substrate brief --compact
 ```
+````
 
 Read and internalize all constraints and decisions before proceeding.
 
@@ -48,12 +50,12 @@ Read and internalize all constraints and decisions before proceeding.
 
 Capture discoveries immediately:
 
-| Discovery | Command |
-|-----------|---------|
-| Hard rule | `substrate add "..." --type constraint` |
-| Decision | `substrate add "..." --type decision` |
-| Context | `substrate add "..." --type note` |
-| Relationship | `substrate link add <id1> <id2>` |
+| Discovery    | Command                                 |
+| ------------ | --------------------------------------- |
+| Hard rule    | `substrate add "..." --type constraint` |
+| Decision     | `substrate add "..." --type decision`   |
+| Context      | `substrate add "..." --type note`       |
+| Relationship | `substrate link add <id1> <id2>`        |
 
 Use tags: `--tag api`, `--tag auth`, `--tag database`
 
@@ -67,6 +69,7 @@ substrate link add X Y       # Link items
 substrate digest             # Session summary
 substrate recall "query"     # Search history
 ```
+
 ```
 
 ## How It Works
@@ -87,7 +90,9 @@ When you create a `.rules` file, Zed automatically makes it available. The AI wi
 In the Agent Panel, type `@rules` to explicitly include your rules in the conversation:
 
 ```
+
 @rules What constraints exist for the API?
+
 ```
 
 ### With File Context
@@ -95,7 +100,9 @@ In the Agent Panel, type `@rules` to explicitly include your rules in the conver
 Combine rules with file references:
 
 ```
+
 @rules @src/api/users.ts Add input validation following project constraints
+
 ```
 
 ## Tips
@@ -114,8 +121,10 @@ Zed has a built-in rules library. You can create custom rules and reference them
 Bring in relevant context alongside Substrate:
 
 ```
+
 @rules @package.json What database should we use for this project?
-```
+
+````
 
 ### Thread Management
 
@@ -131,7 +140,7 @@ After the AI makes changes, use "Restore Checkpoint" if needed. Then capture wha
 
 ```bash
 substrate add "Approach X worked better than Y for auth" --type decision --tag auth
-```
+````
 
 ## Project-Specific Tags
 

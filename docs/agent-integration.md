@@ -4,17 +4,19 @@ Substrate provides two strategies for integrating with AI agents: **MCP Server**
 
 ## Strategy Overview
 
-| Strategy | Best For | How It Works |
-|----------|----------|--------------|
-| **MCP** | Claude Code, MCP-compatible agents | Native tools, no shell commands |
-| **Instructions** | Any agent | Agent reads protocol, runs CLI |
+| Strategy         | Best For                           | How It Works                    |
+| ---------------- | ---------------------------------- | ------------------------------- |
+| **MCP**          | Claude Code, MCP-compatible agents | Native tools, no shell commands |
+| **Instructions** | Any agent                          | Agent reads protocol, runs CLI  |
 
 Check your current strategy:
+
 ```bash
 substrate config show
 ```
 
 Switch strategies:
+
 ```bash
 substrate config strategy mcp          # Use MCP tools
 substrate config strategy instructions # Use CLI commands
@@ -29,11 +31,13 @@ The MCP (Model Context Protocol) server exposes Substrate functionality as nativ
 ### Setup
 
 1. **Enable MCP mode:**
+
    ```bash
    substrate config strategy mcp
    ```
 
 2. **Start the server:**
+
    ```bash
    substrate mcp serve
    ```
@@ -42,13 +46,13 @@ The MCP (Model Context Protocol) server exposes Substrate functionality as nativ
 
 ### Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `substrate_brief` | Get project context |
-| `substrate_add` | Add context object |
-| `substrate_recall` | Search context history |
-| `substrate_digest` | Session summary |
-| `substrate_link` | Create relationship links |
+| Tool               | Description               |
+| ------------------ | ------------------------- |
+| `substrate_brief`  | Get project context       |
+| `substrate_add`    | Add context object        |
+| `substrate_recall` | Search context history    |
+| `substrate_digest` | Session summary           |
+| `substrate_link`   | Create relationship links |
 
 ### Claude Code Integration
 
@@ -68,6 +72,7 @@ Add to your Claude Code MCP configuration:
 ### Tool Schemas
 
 **substrate_brief**
+
 ```json
 {
   "name": "substrate_brief",
@@ -80,6 +85,7 @@ Add to your Claude Code MCP configuration:
 ```
 
 **substrate_add**
+
 ```json
 {
   "name": "substrate_add",
@@ -93,6 +99,7 @@ Add to your Claude Code MCP configuration:
 ```
 
 **substrate_recall**
+
 ```json
 {
   "name": "substrate_recall",
@@ -106,6 +113,7 @@ Add to your Claude Code MCP configuration:
 ```
 
 **substrate_digest**
+
 ```json
 {
   "name": "substrate_digest",
@@ -117,6 +125,7 @@ Add to your Claude Code MCP configuration:
 ```
 
 **substrate_link**
+
 ```json
 {
   "name": "substrate_link",
@@ -124,7 +133,10 @@ Add to your Claude Code MCP configuration:
   "parameters": {
     "from": { "type": "string", "required": true },
     "to": { "type": "string", "required": true },
-    "relation": { "type": "string", "enum": ["relates_to", "depends_on", "blocks", "implements", "extends", "references"] }
+    "relation": {
+      "type": "string",
+      "enum": ["relates_to", "depends_on", "blocks", "implements", "extends", "references"]
+    }
   }
 }
 ```
@@ -138,6 +150,7 @@ For agents without MCP support, use the instructions protocol. The agent reads i
 ### Setup
 
 1. **Enable instructions mode:**
+
    ```bash
    substrate config strategy instructions
    ```
@@ -154,20 +167,23 @@ Include these instructions in your agent's system prompt or context file:
 This project uses Substrate for persistent context. Follow this protocol:
 
 ### On Session Start
+
 Run `substrate brief --compact` to load project context.
 Internalize constraints and decisions before proceeding.
 
 ### During Work
+
 Capture discoveries immediately:
 
-| Discovery | Command |
-|-----------|---------|
-| Hard rule | `substrate add "..." --type constraint` |
-| Decision | `substrate add "..." --type decision` |
-| Context | `substrate add "..." --type note` |
-| Relationship | `substrate link add <id1> <id2>` |
+| Discovery    | Command                                 |
+| ------------ | --------------------------------------- |
+| Hard rule    | `substrate add "..." --type constraint` |
+| Decision     | `substrate add "..." --type decision`   |
+| Context      | `substrate add "..." --type note`       |
+| Relationship | `substrate link add <id1> <id2>`        |
 
 ### On Task Completion
+
 1. Run `substrate extract` for checklist
 2. Capture implicit constraints
 3. Document decisions with rationale
@@ -175,18 +191,22 @@ Capture discoveries immediately:
 
 ### Quick Reference
 ```
-substrate brief --compact    # Load context
-substrate add "..." -t TYPE  # Save context
-substrate ls                 # List recent
-substrate link add X Y       # Link items
-substrate digest             # Session summary
-substrate recall "query"     # Search history
+
+substrate brief --compact # Load context
+substrate add "..." -t TYPE # Save context
+substrate ls # List recent
+substrate link add X Y # Link items
+substrate digest # Session summary
+substrate recall "query" # Search history
+
 ```
+
 ```
 
 ### Example Agent Behavior
 
 **Good — Agent loads context first:**
+
 ```
 User: Help me add authentication
 
@@ -198,6 +218,7 @@ Based on this context, I'll implement authentication using...
 ```
 
 **Good — Agent captures decisions:**
+
 ```
 Agent: I've decided to use bcrypt for password hashing because...
 > substrate add "Using bcrypt for password hashing - industry standard, configurable work factor" --type decision --tag auth
@@ -214,20 +235,24 @@ Agents should prioritize context types:
 3. **Notes** — Background information
 
 Example brief output:
+
 ```markdown
 ## Project Context: myproject
 
 ### Constraints (treat as immutable facts)
+
 - All API responses must be JSON
 - Never store passwords in plain text
 - Rate limit: 100 req/min per user
 
 ### Decisions (architectural choices made)
+
 - Using PostgreSQL for ACID compliance
 - JWT tokens for stateless auth
   → implements: API is stateless
 
 ### Notes
+
 - Frontend team prefers Tailwind
 - Deployment is on AWS ECS
 ```
@@ -329,6 +354,7 @@ substrate status
 ### Agent adding too much context
 
 Set guidelines in your prompt:
+
 - Only capture non-obvious information
 - Avoid duplicating existing constraints
 - Focus on project-specific knowledge

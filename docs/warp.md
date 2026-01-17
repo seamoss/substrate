@@ -5,6 +5,7 @@ This guide explains how to integrate Substrate with [Warp](https://warp.dev), th
 ## Overview
 
 Warp is an AI-native terminal with built-in assistants. While it doesn't have file-based custom instructions like code editors, you can integrate Substrate through:
+
 - **AI Knowledge settings** — Configure AI behavior
 - **Workflows** — Save common command sequences
 - **Natural language commands** — Ask Warp AI to use Substrate
@@ -28,6 +29,7 @@ substrate init your-project
 ### 3. Configure Warp AI (Optional)
 
 In Warp Settings → AI:
+
 - Enable the AI features you want
 - Configure your preferred model
 
@@ -56,6 +58,7 @@ Add a constraint that all API responses must include request IDs using substrate
 ```
 
 Warp will suggest:
+
 ```bash
 substrate add "All API responses must include request IDs" --type constraint --tag api
 ```
@@ -79,6 +82,7 @@ Save common Substrate operations as Warp Workflows:
 ### Context Brief Workflow
 
 Create a workflow named "substrate-context":
+
 ```bash
 substrate brief --compact
 ```
@@ -90,16 +94,19 @@ Then run it with: `substrate-context`
 Create workflows for common captures:
 
 **Add Constraint** (`sub-constraint`):
+
 ```bash
 substrate add "${1:constraint text}" --type constraint --tag ${2:tag}
 ```
 
 **Add Decision** (`sub-decision`):
+
 ```bash
 substrate add "${1:decision text}" --type decision --tag ${2:tag}
 ```
 
 **Session Summary** (`sub-digest`):
+
 ```bash
 substrate digest --hours ${1:8}
 ```
@@ -121,6 +128,7 @@ I just decided to use Redis for caching. Save this as a substrate decision with 
 ```
 
 Warp will run:
+
 ```bash
 substrate add "Using Redis for caching" --type decision --tag caching
 ```
@@ -132,6 +140,7 @@ Show me what substrate context I added today
 ```
 
 Warp will run:
+
 ```bash
 substrate digest --hours 8
 ```
@@ -145,6 +154,7 @@ Start typing `substrate` and Warp will show command completions based on your hi
 ### Combine with Warp Blocks
 
 Warp organizes terminal output into blocks. After running `substrate brief --compact`, you can:
+
 - Copy the block output
 - Share it with teammates
 - Reference it in later commands
@@ -158,6 +168,7 @@ list all substrate constraints tagged with api
 ```
 
 Warp translates this to:
+
 ```bash
 substrate ls --type constraint --tag api
 ```
@@ -209,6 +220,7 @@ Added in last 8 hours:
 ### Substrate command not found
 
 Ensure Substrate is installed globally:
+
 ```bash
 npm install -g substrate-cli
 substrate --version

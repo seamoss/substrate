@@ -26,7 +26,7 @@ substrate init your-project
 
 Create `.windsurf/rules/substrate.md` in your project:
 
-```markdown
+````markdown
 # Substrate Context Protocol
 
 This project uses Substrate for persistent context management.
@@ -38,6 +38,7 @@ This project uses Substrate for persistent context management.
 ```bash
 substrate brief --compact
 ```
+````
 
 Read and internalize all constraints and decisions before proceeding with any work.
 
@@ -45,18 +46,19 @@ Read and internalize all constraints and decisions before proceeding with any wo
 
 When you discover or establish any of the following, capture it immediately:
 
-| Discovery | Command |
-|-----------|---------|
+| Discovery               | Command                                 |
+| ----------------------- | --------------------------------------- |
 | Hard rule or constraint | `substrate add "..." --type constraint` |
-| Architecture decision | `substrate add "..." --type decision` |
-| Important context | `substrate add "..." --type note` |
-| Related concepts | `substrate link add <id1> <id2>` |
+| Architecture decision   | `substrate add "..." --type decision`   |
+| Important context       | `substrate add "..." --type note`       |
+| Related concepts        | `substrate link add <id1> <id2>`        |
 
 Use tags to categorize: `--tag api`, `--tag auth`, `--tag database`
 
 ## On Task Completion
 
 After completing significant work:
+
 1. Capture any implicit constraints that should be explicit
 2. Document decisions made (with brief rationale)
 3. Link related concepts
@@ -72,7 +74,8 @@ substrate link add X Y       # Link related items
 substrate digest             # What was added this session
 substrate recall "query"     # Search history
 ```
-```
+
+````
 
 ## How It Works
 
@@ -96,7 +99,7 @@ trigger: always
 
 # Substrate Context Protocol
 ...
-```
+````
 
 ### Model Decision
 
@@ -109,6 +112,7 @@ description: Use when working on code that may have architectural constraints or
 ---
 
 # Substrate Context Protocol
+
 ...
 ```
 
@@ -122,6 +126,7 @@ Include project-specific tags in the rules:
 ## Project Tags
 
 Use these tags consistently:
+
 - `api` — API endpoints and contracts
 - `auth` — Authentication and authorization
 - `db` — Database schema and queries
@@ -134,7 +139,7 @@ Use these tags consistently:
 
 For large projects, create rules scoped to specific directories:
 
-```markdown
+````markdown
 ---
 trigger: glob
 globs:
@@ -150,11 +155,13 @@ When working on API files:
    ```bash
    substrate ls --tag api
    ```
+````
 
 2. After adding/modifying endpoints, capture:
    ```bash
    substrate add "POST /users requires auth token" --type constraint --tag api
    ```
+
 ```
 
 ### Combine with Memories
@@ -176,8 +183,10 @@ Keep your Substrate rules concise. The actual context lives in Substrate, not th
 Start a new Windsurf session and ask Cascade:
 
 ```
+
 What project constraints and decisions should I know about?
-```
+
+````
 
 Cascade should run `substrate brief --compact` and summarize the context.
 
@@ -194,7 +203,7 @@ Cascade should run `substrate brief --compact` and summarize the context.
 ```bash
 substrate auth status    # Check authentication
 substrate status         # Check workspace mount
-```
+````
 
 ### Rules truncated
 

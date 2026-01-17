@@ -3,8 +3,7 @@ import { startMcpServer } from '../mcp/server.js';
 import { getStrategy } from './config.js';
 import { error, info, dim } from '../lib/output.js';
 
-export const mcpCommand = new Command('mcp')
-  .description('MCP server for native tool integration');
+export const mcpCommand = new Command('mcp').description('MCP server for native tool integration');
 
 mcpCommand
   .command('serve')

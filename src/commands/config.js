@@ -28,15 +28,14 @@ export function getStrategy() {
   return loadConfig().strategy || 'instructions';
 }
 
-export const configCommand = new Command('config')
-  .description('Manage Substrate configuration');
+export const configCommand = new Command('config').description('Manage Substrate configuration');
 
 // config show
 configCommand
   .command('show')
   .description('Show current configuration')
   .option('--json', 'Output as JSON')
-  .action((options) => {
+  .action(options => {
     const config = loadConfig();
 
     if (options.json) {
@@ -65,7 +64,7 @@ configCommand
   .command('strategy')
   .description('Set agent integration strategy')
   .argument('<mode>', `Strategy mode: ${VALID_STRATEGIES.join(' | ')}`)
-  .action((mode) => {
+  .action(mode => {
     if (!VALID_STRATEGIES.includes(mode)) {
       error(`Invalid strategy '${mode}'. Must be: ${VALID_STRATEGIES.join(' or ')}`);
       process.exit(1);
@@ -100,7 +99,7 @@ configCommand
   .command('get')
   .description('Get a specific config value')
   .argument('<key>', 'Config key to get')
-  .action((key) => {
+  .action(key => {
     const config = loadConfig();
     if (key in config) {
       console.log(config[key]);

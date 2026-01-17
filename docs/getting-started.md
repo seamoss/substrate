@@ -35,6 +35,7 @@ substrate auth init
 This creates an anonymous account and saves your API key to `~/.substrate/auth.json`.
 
 Check your auth status:
+
 ```bash
 substrate auth status
 ```
@@ -49,6 +50,7 @@ substrate init myproject
 ```
 
 This:
+
 1. Creates a workspace named "myproject"
 2. Generates a unique project ID (UUID)
 3. Mounts the current directory to the workspace
@@ -181,14 +183,14 @@ substrate brief --compact
 
 Copy the output into your agent's system prompt, or set up editor-specific integration:
 
-| Editor/Tool | Guide |
-|-------------|-------|
-| Claude Code | [CLAUDE.md setup](claude-code.md) |
-| Cursor | [.cursor/rules setup](cursor.md) |
-| Windsurf | [.windsurf/rules setup](windsurf.md) |
+| Editor/Tool    | Guide                                        |
+| -------------- | -------------------------------------------- |
+| Claude Code    | [CLAUDE.md setup](claude-code.md)            |
+| Cursor         | [.cursor/rules setup](cursor.md)             |
+| Windsurf       | [.windsurf/rules setup](windsurf.md)         |
 | GitHub Copilot | [copilot-instructions.md](github-copilot.md) |
-| Zed | [.rules file setup](zed.md) |
-| Warp | [AI terminal setup](warp.md) |
+| Zed            | [.rules file setup](zed.md)                  |
+| Warp           | [AI terminal setup](warp.md)                 |
 
 For native tool integration, use the MCP server:
 

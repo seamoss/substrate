@@ -23,24 +23,36 @@ export async function getSyncStatus(workspaceId) {
   }
 
   // Count items needing push (never synced or modified since last sync)
-  const pendingPush = db.prepare(`
+  const pendingPush = db
+    .prepare(
+      `
     SELECT COUNT(*) as count FROM context
     WHERE workspace_id = ? AND deleted_at IS NULL
     AND (synced_at IS NULL OR updated_at > synced_at)
-  `).get(workspaceId);
+  `
+    )
+    .get(workspaceId);
 
   // Count links needing push
-  const pendingLinksPush = db.prepare(`
+  const pendingLinksPush = db
+    .prepare(
+      `
     SELECT COUNT(*) as count FROM links l
     JOIN context c ON l.from_id = c.id
     WHERE c.workspace_id = ?
     AND l.created_at > COALESCE(c.synced_at, '1970-01-01')
-  `).get(workspaceId);
+  `
+    )
+    .get(workspaceId);
 
   // Get last sync time
-  const lastSync = db.prepare(`
+  const lastSync = db
+    .prepare(
+      `
     SELECT MAX(synced_at) as last FROM context WHERE workspace_id = ?
-  `).get(workspaceId);
+  `
+    )
+    .get(workspaceId);
 
   return {
     workspace: workspace.name,
@@ -76,8 +88,11 @@ export async function pushChanges(workspaceId, options = {}) {
       const created = await api.createWorkspace(workspace.name, workspace.description);
       // Extract just the ID part from 'workspace:xyz' format
       remoteWorkspaceId = created.id.replace('workspace:', '');
-      db.prepare('UPDATE workspaces SET remote_id = ?, synced_at = ? WHERE id = ?')
-        .run(remoteWorkspaceId, new Date().toISOString(), workspaceId);
+      db.prepare('UPDATE workspaces SET remote_id = ?, synced_at = ? WHERE id = ?').run(
+        remoteWorkspaceId,
+        new Date().toISOString(),
+        workspaceId
+      );
     } catch (err) {
       return { error: `Failed to create remote workspace: ${err.message}` };
     }
@@ -87,28 +102,34 @@ export async function pushChanges(workspaceId, options = {}) {
   }
 
   // Get items needing push
-  const items = db.prepare(`
+  const items = db
+    .prepare(
+      `
     SELECT * FROM context
     WHERE workspace_id = ? AND deleted_at IS NULL
     AND (synced_at IS NULL OR updated_at > synced_at)
     ORDER BY created_at ASC
-  `).all(workspaceId);
+  `
+    )
+    .all(workspaceId);
 
   const results = { pushed: 0, failed: 0, errors: [] };
 
   for (const item of items) {
     try {
       // Push to remote via batch endpoint
-      const response = await api.syncPush(remoteWorkspaceId, [{
-        id: item.id,
-        type: item.type,
-        content: item.content,
-        tags: JSON.parse(item.tags || '[]'),
-        scope: item.scope,
-        meta: JSON.parse(item.meta || '{}'),
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }]);
+      const response = await api.syncPush(remoteWorkspaceId, [
+        {
+          id: item.id,
+          type: item.type,
+          content: item.content,
+          tags: JSON.parse(item.tags || '[]'),
+          scope: item.scope,
+          meta: JSON.parse(item.meta || '{}'),
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }
+      ]);
 
       if (response.error) {
         results.failed++;
@@ -119,8 +140,11 @@ export async function pushChanges(workspaceId, options = {}) {
       // Update local sync status
       const now = new Date().toISOString();
       const remoteId = response.items?.[0]?.id || item.id;
-      db.prepare('UPDATE context SET remote_id = ?, synced_at = ? WHERE id = ?')
-        .run(remoteId, now, item.id);
+      db.prepare('UPDATE context SET remote_id = ?, synced_at = ? WHERE id = ?').run(
+        remoteId,
+        now,
+        item.id
+      );
 
       results.pushed++;
       if (verbose) {
@@ -133,12 +157,16 @@ export async function pushChanges(workspaceId, options = {}) {
   }
 
   // Push links
-  const links = db.prepare(`
+  const links = db
+    .prepare(
+      `
     SELECT l.* FROM links l
     JOIN context c ON l.from_id = c.id
     WHERE c.workspace_id = ?
     AND l.created_at > COALESCE(c.synced_at, '1970-01-01')
-  `).all(workspaceId);
+  `
+    )
+    .all(workspaceId);
 
   for (const link of links) {
     try {
@@ -172,9 +200,13 @@ export async function pullChanges(workspaceId, options = {}) {
   const remoteWorkspaceId = workspace.remote_id.replace('workspace:', '');
 
   // Get last sync time for incremental pull
-  const lastSync = db.prepare(`
+  const lastSync = db
+    .prepare(
+      `
     SELECT MAX(synced_at) as last FROM context WHERE workspace_id = ?
-  `).get(workspaceId);
+  `
+    )
+    .get(workspaceId);
 
   // Fetch remote changes
   let remoteItems;
@@ -193,15 +225,18 @@ export async function pullChanges(workspaceId, options = {}) {
 
   for (const remote of remoteItems.items || []) {
     // Check if exists locally
-    const local = db.prepare('SELECT * FROM context WHERE id = ? OR remote_id = ?')
+    const local = db
+      .prepare('SELECT * FROM context WHERE id = ? OR remote_id = ?')
       .get(remote.id, remote.id);
 
     if (!local) {
       // New item - insert
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, remote_id, created_at, updated_at, synced_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `
+      ).run(
         remote.id,
         workspaceId,
         remote.type,
@@ -225,10 +260,12 @@ export async function pullChanges(workspaceId, options = {}) {
 
       if (remoteTime > localTime) {
         // Remote is newer - update local
-        db.prepare(`
+        db.prepare(
+          `
           UPDATE context SET type = ?, content = ?, tags = ?, scope = ?, meta = ?, updated_at = ?, synced_at = ?
           WHERE id = ?
-        `).run(
+        `
+        ).run(
           remote.type,
           remote.content,
           JSON.stringify(remote.tags || []),

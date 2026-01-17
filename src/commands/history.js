@@ -20,7 +20,7 @@ function findWorkspaceForCwd() {
 
 function parseTimeAgo(hoursAgo) {
   const now = new Date();
-  const cutoff = new Date(now.getTime() - (hoursAgo * 60 * 60 * 1000));
+  const cutoff = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
   return cutoff.toISOString();
 }
 
@@ -43,7 +43,7 @@ export const digestCommand = new Command('digest')
   .option('-h, --hours <n>', 'Hours to look back', '8')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
-  .action((options) => {
+  .action(options => {
     const db = getDb();
     const hoursAgo = parseFloat(options.hours);
     const cutoff = parseTimeAgo(hoursAgo);
@@ -61,25 +61,33 @@ export const digestCommand = new Command('digest')
     }
 
     // Get recent context
-    const items = db.prepare(`
+    const items = db
+      .prepare(
+        `
       SELECT * FROM context
       WHERE workspace_id = ? AND created_at >= ?
       ORDER BY created_at DESC
-    `).all(workspace.id, cutoff);
+    `
+      )
+      .all(workspace.id, cutoff);
 
     items.forEach(item => {
       item.tags = JSON.parse(item.tags || '[]');
     });
 
     // Get recent links
-    const links = db.prepare(`
+    const links = db
+      .prepare(
+        `
       SELECT l.*, cf.content as from_content, ct.content as to_content
       FROM links l
       JOIN context cf ON l.from_id = cf.id
       JOIN context ct ON l.to_id = ct.id
       WHERE cf.workspace_id = ? AND l.created_at >= ?
       ORDER BY l.created_at DESC
-    `).all(workspace.id, cutoff);
+    `
+      )
+      .all(workspace.id, cutoff);
 
     // Group by type
     const byType = {
@@ -88,35 +96,39 @@ export const digestCommand = new Command('digest')
       note: items.filter(i => i.type === 'note'),
       task: items.filter(i => i.type === 'task'),
       entity: items.filter(i => i.type === 'entity'),
-      other: items.filter(i => !['constraint', 'decision', 'note', 'task', 'entity'].includes(i.type))
+      other: items.filter(
+        i => !['constraint', 'decision', 'note', 'task', 'entity'].includes(i.type)
+      )
     };
 
     if (options.json) {
-      console.log(formatJson({
-        workspace: workspace.name,
-        period: `last ${hoursAgo} hours`,
-        summary: {
-          total: items.length,
-          constraints: byType.constraint.length,
-          decisions: byType.decision.length,
-          notes: byType.note.length,
-          tasks: byType.task.length,
-          entities: byType.entity.length,
-          links: links.length
-        },
-        items: items.map(i => ({
-          id: shortId(i.id),
-          type: i.type,
-          content: i.content,
-          tags: i.tags,
-          created: i.created_at
-        })),
-        links: links.map(l => ({
-          from: shortId(l.from_id),
-          to: shortId(l.to_id),
-          relation: l.relation
-        }))
-      }));
+      console.log(
+        formatJson({
+          workspace: workspace.name,
+          period: `last ${hoursAgo} hours`,
+          summary: {
+            total: items.length,
+            constraints: byType.constraint.length,
+            decisions: byType.decision.length,
+            notes: byType.note.length,
+            tasks: byType.task.length,
+            entities: byType.entity.length,
+            links: links.length
+          },
+          items: items.map(i => ({
+            id: shortId(i.id),
+            type: i.type,
+            content: i.content,
+            tags: i.tags,
+            created: i.created_at
+          })),
+          links: links.map(l => ({
+            from: shortId(l.from_id),
+            to: shortId(l.to_id),
+            relation: l.relation
+          }))
+        })
+      );
       return;
     }
 
@@ -171,7 +183,9 @@ export const digestCommand = new Command('digest')
     if (links.length > 0) {
       console.log(chalk.cyan.bold('Links created:'));
       links.forEach(l => {
-        console.log(`  ${chalk.dim(formatTimeAgo(l.created_at))} ${l.from_content} → ${l.to_content}`);
+        console.log(
+          `  ${chalk.dim(formatTimeAgo(l.created_at))} ${l.from_content} → ${l.to_content}`
+        );
       });
       console.log();
     }
@@ -237,19 +251,21 @@ export const recallCommand = new Command('recall')
     }
 
     if (options.json) {
-      console.log(formatJson({
-        query: query || null,
-        period: `last ${hoursAgo} hours`,
-        results: filtered.map(i => ({
-          id: shortId(i.id),
-          type: i.type,
-          content: i.content,
-          tags: i.tags,
-          created: i.created_at,
-          timeAgo: formatTimeAgo(i.created_at)
-        })),
-        count: filtered.length
-      }));
+      console.log(
+        formatJson({
+          query: query || null,
+          period: `last ${hoursAgo} hours`,
+          results: filtered.map(i => ({
+            id: shortId(i.id),
+            type: i.type,
+            content: i.content,
+            tags: i.tags,
+            created: i.created_at,
+            timeAgo: formatTimeAgo(i.created_at)
+          })),
+          count: filtered.length
+        })
+      );
       return;
     }
 
