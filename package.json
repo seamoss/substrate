@@ -1,0 +1,32 @@
+{
+  "name": "substrate",
+  "version": "0.1.0",
+  "description": "Shared context layer for humans and agents",
+  "type": "module",
+  "bin": {
+    "substrate": "./bin/substrate.js"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node bin/substrate.js",
+    "link": "npm link"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "commander": "^11.1.0",
+    "better-sqlite3": "^9.2.2",
+    "chalk": "^5.3.0",
+    "ora": "^7.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "cli",
+    "context",
+    "agents",
+    "documentation"
+  ],
+  "author": "",
+  "license": "MIT"
+}
