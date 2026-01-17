@@ -99,7 +99,6 @@ substrate sync push                             # Push to remote
 
 ### Advanced
 
-- [Self-Hosting](docs/self-hosting.md) — Run your own Substrate server
 - [Architecture](docs/architecture.md) — Technical design
 
 ## License

@@ -240,5 +240,3 @@ Workspace tokens can only access their assigned workspace. Use a personal API ke
 ```bash
 curl https://substrate.heavystack.io/health
 ```
-
-If using a self-hosted instance, check your server is running. See [Self-Hosting Guide](self-hosting.md).
