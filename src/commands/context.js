@@ -2,7 +2,8 @@ import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
 import { api } from '../lib/api.js';
-import { success, error, info, formatJson, contextItem } from '../lib/output.js';
+import { success, error, info, warn, formatJson, contextItem, shortId } from '../lib/output.js';
+import { checkDuplicate } from '../lib/similarity.js';
 import ora from 'ora';
 
 const VALID_TYPES = ['note', 'constraint', 'decision', 'task', 'entity', 'runbook', 'snippet'];
@@ -35,6 +36,7 @@ contextCommand
   .option('-w, --workspace <name>', 'Workspace name (auto-detected from mount if not specified)')
   .option('--tag <tags>', 'Comma-separated tags')
   .option('-s, --scope <scope>', 'Scope path', '*')
+  .option('-f, --force', 'Skip duplicate check')
   .option('--json', 'Output as JSON')
   .action(async (content, options) => {
     const db = getDb();
@@ -59,6 +61,27 @@ contextCommand
     if (!VALID_TYPES.includes(options.type)) {
       error(`Invalid type '${options.type}'. Must be one of: ${VALID_TYPES.join(', ')}`);
       process.exit(1);
+    }
+
+    // Check for duplicates unless --force is used
+    if (!options.force) {
+      const duplicate = checkDuplicate(db, workspace.id, content, options.type);
+      if (duplicate) {
+        if (options.json) {
+          console.log(
+            formatJson({
+              error: 'Similar content exists',
+              existing: duplicate,
+              hint: 'Use --force to add anyway'
+            })
+          );
+        } else {
+          warn(`Similar ${duplicate.type} already exists (${duplicate.similarity}% match):`);
+          console.log(`  ${shortId(duplicate.id)} ${duplicate.content}`);
+          info('Use --force to add anyway');
+        }
+        process.exit(1);
+      }
     }
 
     const now = new Date().toISOString();

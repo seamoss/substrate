@@ -61,7 +61,18 @@ export function getDb() {
       FOREIGN KEY (to_id) REFERENCES context(id)
     );
 
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      name TEXT,
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_mounts_path ON mounts(path);
+    CREATE INDEX IF NOT EXISTS idx_sessions_workspace ON sessions(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(ended_at);
     CREATE INDEX IF NOT EXISTS idx_context_workspace ON context(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_context_type ON context(type);
     CREATE INDEX IF NOT EXISTS idx_context_synced ON context(synced_at);

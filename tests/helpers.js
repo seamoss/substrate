@@ -65,7 +65,18 @@ export function createTestDb() {
       FOREIGN KEY (to_id) REFERENCES context(id)
     );
 
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      name TEXT,
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_mounts_path ON mounts(path);
+    CREATE INDEX IF NOT EXISTS idx_sessions_workspace ON sessions(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(ended_at);
     CREATE INDEX IF NOT EXISTS idx_context_workspace ON context(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_context_type ON context(type);
     CREATE INDEX IF NOT EXISTS idx_context_synced ON context(synced_at);
@@ -164,6 +175,23 @@ export function createLink(db, { fromId, toId, relation = 'relates_to' }) {
   ).run(fromId, toId, relation, now);
 
   return db.prepare('SELECT * FROM links WHERE from_id = ? AND to_id = ?').get(fromId, toId);
+}
+
+/**
+ * Creates a session in the test database.
+ */
+export function createSession(db, { workspaceId, name = null, startedAt = null, endedAt = null }) {
+  const id = randomUUID();
+  const started = startedAt || new Date().toISOString();
+
+  db.prepare(
+    `
+    INSERT INTO sessions (id, workspace_id, name, started_at, ended_at)
+    VALUES (?, ?, ?, ?, ?)
+  `
+  ).run(id, workspaceId, name, started, endedAt);
+
+  return db.prepare('SELECT * FROM sessions WHERE id = ?').get(id);
 }
 
 /**

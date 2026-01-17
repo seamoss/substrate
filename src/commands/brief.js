@@ -4,6 +4,8 @@ import { getDb } from '../db/local.js';
 import { formatJson, heading, contextItem, info, dim, shortId } from '../lib/output.js';
 import chalk from 'chalk';
 
+const VALID_FORMATS = ['default', 'agent', 'markdown'];
+
 function findMountForPath(db, targetPath) {
   const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
 
@@ -172,17 +174,171 @@ function generatePrompt(brief, _linkMap, _filtered) {
   return lines.join('\n').trim();
 }
 
+function getActiveSession(db, workspaceId) {
+  return db
+    .prepare(
+      'SELECT * FROM sessions WHERE workspace_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1'
+    )
+    .get(workspaceId);
+}
+
+function formatDuration(startedAt) {
+  const start = new Date(startedAt);
+  const now = new Date();
+  const diffMs = now - start;
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+function generateAgentFormat(brief, workspace, session) {
+  const lines = [];
+
+  // Header with workspace and session info
+  lines.push('# SUBSTRATE CONTEXT');
+  lines.push(`Workspace: ${workspace.name}`);
+  if (session) {
+    lines.push(`Session: ${session.name || 'active'} (${formatDuration(session.started_at)})`);
+  }
+  lines.push('');
+
+  // Priority context first (constraints are immutable)
+  if (brief.constraints.length > 0) {
+    lines.push('## CONSTRAINTS (Treat as hard requirements)');
+    brief.constraints.forEach(c => {
+      lines.push(`* ${c.content}`);
+    });
+    lines.push('');
+  }
+
+  // Decisions next
+  if (brief.decisions.length > 0) {
+    lines.push('## DECISIONS (Follow these architectural choices)');
+    brief.decisions.forEach(d => {
+      lines.push(`* ${d.content}`);
+    });
+    lines.push('');
+  }
+
+  // Notes provide context
+  if (brief.notes.length > 0) {
+    lines.push('## CONTEXT');
+    brief.notes.forEach(n => {
+      lines.push(`* ${n.content}`);
+    });
+    lines.push('');
+  }
+
+  // Active tasks if any
+  if (brief.tasks.length > 0) {
+    lines.push('## ACTIVE TASKS');
+    brief.tasks.forEach(t => {
+      lines.push(`* ${t.content}`);
+    });
+    lines.push('');
+  }
+
+  // Entities for reference
+  if (brief.entities.length > 0) {
+    lines.push('## KEY ENTITIES');
+    brief.entities.forEach(e => {
+      lines.push(`* ${e.content}`);
+    });
+    lines.push('');
+  }
+
+  // Quick reference commands for the agent
+  lines.push('---');
+  lines.push('CAPTURE CONTEXT: substrate add "<content>" --type <constraint|decision|note|task>');
+  if (!session) {
+    lines.push('START SESSION: substrate session start "<name>"');
+  } else {
+    lines.push('END SESSION: substrate session end');
+  }
+
+  return lines.join('\n');
+}
+
+function generateMarkdownFormat(brief, workspace) {
+  const lines = [];
+
+  lines.push(`# ${workspace.name} - Project Context`);
+  lines.push('');
+
+  if (brief.constraints.length > 0) {
+    lines.push('## Constraints');
+    lines.push('> These are immutable facts that must be respected.');
+    lines.push('');
+    brief.constraints.forEach(c => {
+      const tags = c.tags?.length ? ` \`${c.tags.join('`, `')}\`` : '';
+      lines.push(`- **${c.content}**${tags}`);
+    });
+    lines.push('');
+  }
+
+  if (brief.decisions.length > 0) {
+    lines.push('## Architectural Decisions');
+    lines.push('');
+    brief.decisions.forEach(d => {
+      const tags = d.tags?.length ? ` \`${d.tags.join('`, `')}\`` : '';
+      lines.push(`- ${d.content}${tags}`);
+    });
+    lines.push('');
+  }
+
+  if (brief.notes.length > 0) {
+    lines.push('## Notes');
+    lines.push('');
+    brief.notes.forEach(n => {
+      lines.push(`- ${n.content}`);
+    });
+    lines.push('');
+  }
+
+  if (brief.tasks.length > 0) {
+    lines.push('## Tasks');
+    lines.push('');
+    brief.tasks.forEach(t => {
+      lines.push(`- [ ] ${t.content}`);
+    });
+    lines.push('');
+  }
+
+  if (brief.entities.length > 0) {
+    lines.push('## Key Entities');
+    lines.push('');
+    brief.entities.forEach(e => {
+      lines.push(`- ${e.content}`);
+    });
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
 export const briefCommand = new Command('brief')
   .description('Get applicable context for current directory (primary agent interface)')
   .argument('[path]', 'Path to get context for', '.')
   .option('-w, --workspace <name>', 'Workspace name (auto-detected if not specified)')
   .option('--tag <tags>', 'Filter by comma-separated tags')
   .option('-t, --type <type>', 'Filter by type')
+  .option('-f, --format <format>', `Output format: ${VALID_FORMATS.join(', ')}`, 'default')
   .option('--compact', 'Output only the prompt text (for piping into agents)')
   .option('--no-links', 'Exclude relationship links from output')
   .option('--json', 'Output as JSON')
   .option('--human', 'Human-readable output')
   .action(async (path, options) => {
+    // Validate format option
+    if (!VALID_FORMATS.includes(options.format)) {
+      console.error(
+        `Invalid format '${options.format}'. Must be one of: ${VALID_FORMATS.join(', ')}`
+      );
+      process.exit(1);
+    }
+
     const db = getDb();
     const targetPath = resolve(path);
 
@@ -283,6 +439,20 @@ export const briefCommand = new Command('brief')
 
     // Generate prompt text
     const prompt = generatePrompt(brief, linkMap, filtered);
+
+    // Get active session for agent format
+    const session = getActiveSession(db, workspace.id);
+
+    // Handle format option first (takes precedence over compact/json/human)
+    if (options.format === 'agent') {
+      console.log(generateAgentFormat(brief, workspace, session));
+      return;
+    }
+
+    if (options.format === 'markdown') {
+      console.log(generateMarkdownFormat(brief, workspace));
+      return;
+    }
 
     // Compact mode: just the prompt
     if (options.compact) {
