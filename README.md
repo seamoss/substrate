@@ -97,10 +97,6 @@ substrate sync push                             # Push to remote
 - [Warp](docs/warp.md) — AI terminal integration
 - [MCP Server](docs/agent-integration.md) — Native tool integration
 
-### Advanced
-
-- [Architecture](docs/architecture.md) — Technical design
-
 ## License
 
 MIT

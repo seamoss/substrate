@@ -241,4 +241,3 @@ substrate dump -o docs/CONTEXT.md
 - [Claude Code Setup](claude-code.md) — Using Substrate with Claude Code
 - [Authentication](authentication.md) — Managing API keys and tokens
 - [Agent Integration](agent-integration.md) — MCP server setup
-- [Architecture](architecture.md) — How Substrate works
