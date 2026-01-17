@@ -3,11 +3,10 @@ import { resolve } from 'path';
 import { getDb } from '../db/local.js';
 import { api } from '../lib/api.js';
 import { getProjectId } from '../lib/config.js';
-import { success, error, info, warn, formatJson, table, dim } from '../lib/output.js';
+import { success, error, info, warn, formatJson, dim } from '../lib/output.js';
 import ora from 'ora';
 
-export const mountCommand = new Command('mount')
-  .description('Manage workspace mounts');
+export const mountCommand = new Command('mount').description('Manage workspace mounts');
 
 // mount add
 mountCommand
@@ -29,7 +28,9 @@ mountCommand
       if (options.json) {
         console.log(formatJson({ error: `Workspace '${options.workspace}' not found` }));
       } else {
-        error(`Workspace '${options.workspace}' not found. Run 'substrate init ${options.workspace}' first.`);
+        error(
+          `Workspace '${options.workspace}' not found. Run 'substrate init ${options.workspace}' first.`
+        );
       }
       process.exit(1);
     }
@@ -49,10 +50,12 @@ mountCommand
     const now = new Date().toISOString();
     const tags = options.tags ? options.tags.split(',').map(t => t.trim()) : [];
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO mounts (workspace_id, path, scope, tags, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(workspace.id, fullPath, options.scope, JSON.stringify(tags), now, now);
+    `
+    ).run(workspace.id, fullPath, options.scope, JSON.stringify(tags), now, now);
 
     // Try to sync to remote
     const spinner = options.json ? null : ora('Mounting...').start();
@@ -106,17 +109,23 @@ mountCommand
       : null;
 
     if (options.json) {
-      console.log(formatJson({
-        path: fullPath,
-        pinned: pinnedWorkspace ? {
-          project_id: projectId,
-          workspace: pinnedWorkspace
-        } : null,
-        mounted: activeMount ? {
-          mount: activeMount,
-          workspace: mountedWorkspace
-        } : null
-      }));
+      console.log(
+        formatJson({
+          path: fullPath,
+          pinned: pinnedWorkspace
+            ? {
+                project_id: projectId,
+                workspace: pinnedWorkspace
+              }
+            : null,
+          mounted: activeMount
+            ? {
+                mount: activeMount,
+                workspace: mountedWorkspace
+              }
+            : null
+        })
+      );
       return;
     }
 
@@ -156,14 +165,18 @@ mountCommand
   .alias('ls')
   .description('List all mounts')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     const db = getDb();
-    const mounts = db.prepare(`
+    const mounts = db
+      .prepare(
+        `
       SELECT m.*, w.name as workspace_name
       FROM mounts m
       JOIN workspaces w ON m.workspace_id = w.id
       ORDER BY m.path
-    `).all();
+    `
+      )
+      .all();
 
     if (options.json) {
       console.log(formatJson({ mounts }));

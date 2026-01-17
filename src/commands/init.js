@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
 import { api } from '../lib/api.js';
-import { success, error, info, formatJson } from '../lib/output.js';
+import { success, info, formatJson } from '../lib/output.js';
 import { saveProjectConfig } from '../lib/config.js';
 import { randomUUID } from 'crypto';
 import ora from 'ora';
@@ -31,10 +31,12 @@ export const initCommand = new Command('init')
     const projectId = randomUUID();
 
     // Create locally first
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO workspaces (id, name, description, project_id, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, name, options.description || '', projectId, now, now);
+    `
+    ).run(id, name, options.description || '', projectId, now, now);
 
     // Create .substrate/config.json with project_id
     saveProjectConfig({ project_id: projectId });
@@ -46,8 +48,11 @@ export const initCommand = new Command('init')
       const result = await api.createWorkspace(name, options.description, projectId);
       if (result.workspace?.id) {
         remoteId = result.workspace.id;
-        db.prepare('UPDATE workspaces SET remote_id = ?, synced_at = ? WHERE id = ?')
-          .run(remoteId, now, id);
+        db.prepare('UPDATE workspaces SET remote_id = ?, synced_at = ? WHERE id = ?').run(
+          remoteId,
+          now,
+          id
+        );
       }
       spinner?.stop();
     } catch (err) {

@@ -20,7 +20,9 @@ function getLinksForItems(db, itemIds) {
   if (itemIds.length === 0) return {};
 
   const placeholders = itemIds.map(() => '?').join(',');
-  const links = db.prepare(`
+  const links = db
+    .prepare(
+      `
     SELECT l.*,
            cf.content as from_content, cf.type as from_type, cf.id as from_id,
            ct.content as to_content, ct.type as to_type, ct.id as to_id
@@ -28,7 +30,9 @@ function getLinksForItems(db, itemIds) {
     JOIN context cf ON l.from_id = cf.id
     JOIN context ct ON l.to_id = ct.id
     WHERE l.from_id IN (${placeholders}) OR l.to_id IN (${placeholders})
-  `).all(...itemIds, ...itemIds);
+  `
+    )
+    .all(...itemIds, ...itemIds);
 
   // Group links by item id
   const linkMap = {};
@@ -81,7 +85,7 @@ function slimContext(item, linkMap) {
   return slim;
 }
 
-function generatePrompt(brief, linkMap, filtered) {
+function generatePrompt(brief, _linkMap, _filtered) {
   const lines = [];
 
   lines.push(`## Project Context: ${brief.workspace}`);
@@ -204,7 +208,8 @@ export const briefCommand = new Command('brief')
       const output = {
         error: 'No workspace found for this path',
         path: targetPath,
-        suggestion: 'Run: substrate init <workspace> && substrate mount add . --workspace <workspace>'
+        suggestion:
+          'Run: substrate init <workspace> && substrate mount add . --workspace <workspace>'
       };
 
       if (options.json || !options.human) {
@@ -256,9 +261,13 @@ export const briefCommand = new Command('brief')
     }
 
     // Get links for all filtered items (unless --no-links)
-    const linkMap = options.links !== false
-      ? getLinksForItems(db, filtered.map(i => i.id))
-      : {};
+    const linkMap =
+      options.links !== false
+        ? getLinksForItems(
+            db,
+            filtered.map(i => i.id)
+          )
+        : {};
 
     // Build structured brief with slim context objects
     const brief = {
@@ -283,19 +292,21 @@ export const briefCommand = new Command('brief')
 
     // JSON output (default for agents)
     if (options.json || !options.human) {
-      console.log(formatJson({
-        workspace: brief.workspace,
-        path: brief.path,
-        prompt,
-        context: {
-          constraints: brief.constraints,
-          decisions: brief.decisions,
-          notes: brief.notes,
-          tasks: brief.tasks,
-          entities: brief.entities
-        },
-        count: brief.count
-      }));
+      console.log(
+        formatJson({
+          workspace: brief.workspace,
+          path: brief.path,
+          prompt,
+          context: {
+            constraints: brief.constraints,
+            decisions: brief.decisions,
+            notes: brief.notes,
+            tasks: brief.tasks,
+            entities: brief.entities
+          },
+          count: brief.count
+        })
+      );
       return;
     }
 
@@ -304,7 +315,7 @@ export const briefCommand = new Command('brief')
     dim(`Path: ${targetPath}`);
     console.log();
 
-    const printWithLinks = (item) => {
+    const printWithLinks = item => {
       contextItem(item);
       const links = linkMap[item.id];
       if (links && links.length > 0) {

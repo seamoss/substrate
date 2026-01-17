@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
 import { api } from '../lib/api.js';
-import { success, error, info, formatJson, dim, shortId } from '../lib/output.js';
+import { error, info, formatJson, dim, shortId } from '../lib/output.js';
 import chalk from 'chalk';
 import ora from 'ora';
 
@@ -21,9 +21,9 @@ function findWorkspaceForCwd() {
 }
 
 function findContextByShortId(db, shortIdStr, workspaceId) {
-  const items = db.prepare(
-    'SELECT * FROM context WHERE workspace_id = ? AND id LIKE ?'
-  ).all(workspaceId, `${shortIdStr}%`);
+  const items = db
+    .prepare('SELECT * FROM context WHERE workspace_id = ? AND id LIKE ?')
+    .all(workspaceId, `${shortIdStr}%`);
 
   if (items.length === 0) {
     return { found: false, error: `No context found with ID starting with '${shortIdStr}'` };
@@ -110,7 +110,9 @@ export const relatedCommand = new Command('related')
 
     // Fallback: use local SQLite links
     if (source === 'local') {
-      const links = db.prepare(`
+      const links = db
+        .prepare(
+          `
         SELECT l.*,
                cf.id as from_id, cf.type as from_type, cf.content as from_content, cf.tags as from_tags,
                ct.id as to_id, ct.type as to_type, ct.content as to_content, ct.tags as to_tags
@@ -118,7 +120,9 @@ export const relatedCommand = new Command('related')
         JOIN context cf ON l.from_id = cf.id
         JOIN context ct ON l.to_id = ct.id
         WHERE l.from_id = ? OR l.to_id = ?
-      `).all(item.id, item.id);
+      `
+        )
+        .all(item.id, item.id);
 
       const seen = new Set([item.id]);
 
@@ -145,13 +149,13 @@ export const relatedCommand = new Command('related')
 
       // Depth 2: find links from related items
       if (depth >= 2 && related.length > 0) {
-        const firstHopIds = related.map(r => r.id);
-
         for (const rel of [...related]) {
           const fullId = db.prepare('SELECT id FROM context WHERE id LIKE ?').get(`${rel.id}%`)?.id;
           if (!fullId) continue;
 
-          const secondLinks = db.prepare(`
+          const secondLinks = db
+            .prepare(
+              `
             SELECT l.*,
                    cf.id as from_id, cf.type as from_type, cf.content as from_content, cf.tags as from_tags,
                    ct.id as to_id, ct.type as to_type, ct.content as to_content, ct.tags as to_tags
@@ -159,7 +163,9 @@ export const relatedCommand = new Command('related')
             JOIN context cf ON l.from_id = cf.id
             JOIN context ct ON l.to_id = ct.id
             WHERE (l.from_id = ? OR l.to_id = ?) AND l.from_id != ? AND l.to_id != ?
-          `).all(fullId, fullId, item.id, item.id);
+          `
+            )
+            .all(fullId, fullId, item.id, item.id);
 
           secondLinks.forEach(l => {
             const isOutbound = l.from_id === fullId;
@@ -184,17 +190,19 @@ export const relatedCommand = new Command('related')
 
     // Output
     if (options.json) {
-      console.log(formatJson({
-        context: {
-          id: shortId(item.id),
-          type: item.type,
-          content: item.content,
-          tags: item.tags
-        },
-        related,
-        depth,
-        source
-      }));
+      console.log(
+        formatJson({
+          context: {
+            id: shortId(item.id),
+            type: item.type,
+            content: item.content,
+            tags: item.tags
+          },
+          related,
+          depth,
+          source
+        })
+      );
       return;
     }
 

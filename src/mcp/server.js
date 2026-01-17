@@ -16,10 +16,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { getDb } from '../db/local.js';
 import { getStrategy } from '../commands/config.js';
@@ -27,7 +24,14 @@ import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 
 const VALID_TYPES = ['note', 'constraint', 'decision', 'task', 'entity', 'runbook', 'snippet'];
-const RELATION_TYPES = ['relates_to', 'depends_on', 'blocks', 'implements', 'extends', 'references'];
+const RELATION_TYPES = [
+  'relates_to',
+  'depends_on',
+  'blocks',
+  'implements',
+  'extends',
+  'references'
+];
 
 // Helper functions
 function findWorkspaceForPath(db, targetPath) {
@@ -49,23 +53,27 @@ function shortId(id) {
 
 function parseTimeAgo(hoursAgo) {
   const now = new Date();
-  return new Date(now.getTime() - (hoursAgo * 60 * 60 * 1000)).toISOString();
+  return new Date(now.getTime() - hoursAgo * 60 * 60 * 1000).toISOString();
 }
 
 // Tool implementations
 async function handleBrief(args) {
   const db = getDb();
   const targetPath = resolve(args.path || process.cwd());
-  const { workspace, mount } = findWorkspaceForPath(db, targetPath);
+  const { workspace } = findWorkspaceForPath(db, targetPath);
 
   if (!workspace) {
     return { error: 'No workspace found for this path' };
   }
 
-  const items = db.prepare(`
+  const items = db
+    .prepare(
+      `
     SELECT * FROM context WHERE workspace_id = ?
     ORDER BY CASE type WHEN 'constraint' THEN 1 WHEN 'decision' THEN 2 WHEN 'note' THEN 3 ELSE 4 END
-  `).all(workspace.id);
+  `
+    )
+    .all(workspace.id);
 
   items.forEach(item => {
     item.tags = JSON.parse(item.tags || '[]');
@@ -126,10 +134,22 @@ async function handleAdd(args) {
   const now = new Date().toISOString();
   const id = randomUUID();
 
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, workspace.id, type, args.content, JSON.stringify(tags), args.scope || '*', '{}', now, now);
+  `
+  ).run(
+    id,
+    workspace.id,
+    type,
+    args.content,
+    JSON.stringify(tags),
+    args.scope || '*',
+    '{}',
+    now,
+    now
+  );
 
   return {
     added: true,
@@ -200,10 +220,14 @@ async function handleDigest(args) {
   const hoursAgo = parseFloat(args.hours || 8);
   const cutoff = parseTimeAgo(hoursAgo);
 
-  const items = db.prepare(`
+  const items = db
+    .prepare(
+      `
     SELECT * FROM context WHERE workspace_id = ? AND created_at >= ?
     ORDER BY created_at DESC
-  `).all(workspace.id, cutoff);
+  `
+    )
+    .all(workspace.id, cutoff);
 
   items.forEach(item => {
     item.tags = JSON.parse(item.tags || '[]');
@@ -251,9 +275,11 @@ async function handleLink(args) {
   }
 
   // Find items by short ID
-  const fromItem = db.prepare('SELECT * FROM context WHERE workspace_id = ? AND id LIKE ?')
+  const fromItem = db
+    .prepare('SELECT * FROM context WHERE workspace_id = ? AND id LIKE ?')
     .get(workspace.id, `${args.from}%`);
-  const toItem = db.prepare('SELECT * FROM context WHERE workspace_id = ? AND id LIKE ?')
+  const toItem = db
+    .prepare('SELECT * FROM context WHERE workspace_id = ? AND id LIKE ?')
     .get(workspace.id, `${args.to}%`);
 
   if (!fromItem) return { error: `No context found with ID starting with '${args.from}'` };
@@ -262,8 +288,12 @@ async function handleLink(args) {
   const relation = RELATION_TYPES.includes(args.relation) ? args.relation : 'relates_to';
   const now = new Date().toISOString();
 
-  db.prepare('INSERT INTO links (from_id, to_id, relation, created_at) VALUES (?, ?, ?, ?)')
-    .run(fromItem.id, toItem.id, relation, now);
+  db.prepare('INSERT INTO links (from_id, to_id, relation, created_at) VALUES (?, ?, ?, ?)').run(
+    fromItem.id,
+    toItem.id,
+    relation,
+    now
+  );
 
   return {
     linked: true,
@@ -274,10 +304,7 @@ async function handleLink(args) {
 }
 
 // MCP Server setup
-const server = new Server(
-  { name: 'substrate', version: '0.1.0' },
-  { capabilities: { tools: {} } }
-);
+const server = new Server({ name: 'substrate', version: '0.1.0' }, { capabilities: { tools: {} } });
 
 // List tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -285,11 +312,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   const strategy = getStrategy();
   if (strategy !== 'mcp') {
     return {
-      tools: [{
-        name: 'substrate_warning',
-        description: `Substrate is in '${strategy}' mode. Switch to MCP mode with: substrate config strategy mcp`,
-        inputSchema: { type: 'object', properties: {} }
-      }]
+      tools: [
+        {
+          name: 'substrate_warning',
+          description: `Substrate is in '${strategy}' mode. Switch to MCP mode with: substrate config strategy mcp`,
+          inputSchema: { type: 'object', properties: {} }
+        }
+      ]
     };
   }
 
@@ -297,7 +326,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'substrate_brief',
-        description: 'Get project context for the current directory. Returns constraints, decisions, and notes.',
+        description:
+          'Get project context for the current directory. Returns constraints, decisions, and notes.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -312,7 +342,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: 'object',
           properties: {
             content: { type: 'string', description: 'The context content' },
-            type: { type: 'string', enum: VALID_TYPES, description: 'Type of context (default: note)' },
+            type: {
+              type: 'string',
+              enum: VALID_TYPES,
+              description: 'Type of context (default: note)'
+            },
             tags: { type: 'string', description: 'Comma-separated tags' },
             scope: { type: 'string', description: 'Scope path (default: *)' },
             path: { type: 'string', description: 'Working directory path' }
@@ -353,7 +387,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             from: { type: 'string', description: 'Source context short ID' },
             to: { type: 'string', description: 'Target context short ID' },
-            relation: { type: 'string', enum: RELATION_TYPES, description: 'Relation type (default: relates_to)' },
+            relation: {
+              type: 'string',
+              enum: RELATION_TYPES,
+              description: 'Relation type (default: relates_to)'
+            },
             path: { type: 'string', description: 'Working directory path' }
           },
           required: ['from', 'to']
@@ -364,19 +402,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // Handle tool calls
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async request => {
   const { name, arguments: args } = request.params;
 
   // Check strategy
   const strategy = getStrategy();
   if (strategy !== 'mcp' && name !== 'substrate_warning') {
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          error: `Substrate is in '${strategy}' mode. Switch to MCP mode with: substrate config strategy mcp`
-        })
-      }]
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            error: `Substrate is in '${strategy}' mode. Switch to MCP mode with: substrate config strategy mcp`
+          })
+        }
+      ]
     };
   }
 
@@ -406,10 +446,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify(result, null, 2)
-    }]
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(result, null, 2)
+      }
+    ]
   };
 });
 

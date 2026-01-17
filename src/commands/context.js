@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
 import { api } from '../lib/api.js';
@@ -66,10 +65,22 @@ contextCommand
     const id = randomUUID();
     const tags = options.tag ? options.tag.split(',').map(t => t.trim()) : [];
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, workspace.id, options.type, content, JSON.stringify(tags), options.scope, '{}', now, now);
+    `
+    ).run(
+      id,
+      workspace.id,
+      options.type,
+      content,
+      JSON.stringify(tags),
+      options.scope,
+      '{}',
+      now,
+      now
+    );
 
     // Try to sync to remote
     const spinner = options.json ? null : ora('Saving...').start();
@@ -82,8 +93,11 @@ contextCommand
         options.scope
       );
       if (result.context?.id) {
-        db.prepare('UPDATE context SET remote_id = ?, synced_at = ? WHERE id = ?')
-          .run(result.context.id, now, id);
+        db.prepare('UPDATE context SET remote_id = ?, synced_at = ? WHERE id = ?').run(
+          result.context.id,
+          now,
+          id
+        );
       }
       spinner?.stop();
     } catch (err) {
@@ -112,7 +126,7 @@ contextCommand
   .option('--tag <tag>', 'Filter by tag')
   .option('-n, --limit <n>', 'Limit results', '20')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async options => {
     const db = getDb();
 
     let workspace;
@@ -162,4 +176,3 @@ contextCommand
       filtered.forEach(item => contextItem(item));
     }
   });
-

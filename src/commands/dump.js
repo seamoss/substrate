@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { getDb } from '../db/local.js';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
-import { success, error, info, dim } from '../lib/output.js';
+import { success, error, dim } from '../lib/output.js';
 
 function findWorkspaceForCwd() {
   const db = getDb();
@@ -22,24 +22,16 @@ function findWorkspaceForCwd() {
   return { workspace: null, mount: null };
 }
 
-function formatDate(isoString) {
-  return new Date(isoString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-}
-
 export const dumpCommand = new Command('dump')
   .description('Export all project context to a markdown file')
   .option('-o, --output <path>', 'Output file path', '.substrate/CONTEXT.md')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('--no-links', 'Exclude relationship links')
   .option('--flat', 'Flat format without sections')
-  .action((options) => {
+  .action(options => {
     const db = getDb();
 
-    let workspace, mount;
+    let workspace;
     if (options.workspace) {
       workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
       if (!workspace) {
@@ -49,7 +41,6 @@ export const dumpCommand = new Command('dump')
     } else {
       const result = findWorkspaceForCwd();
       workspace = result.workspace;
-      mount = result.mount;
       if (!workspace) {
         error('No workspace found for current directory');
         process.exit(1);
@@ -57,7 +48,9 @@ export const dumpCommand = new Command('dump')
     }
 
     // Get all context
-    const items = db.prepare(`
+    const items = db
+      .prepare(
+        `
       SELECT * FROM context
       WHERE workspace_id = ? AND deleted_at IS NULL
       ORDER BY
@@ -70,7 +63,9 @@ export const dumpCommand = new Command('dump')
           ELSE 6
         END,
         created_at DESC
-    `).all(workspace.id);
+    `
+      )
+      .all(workspace.id);
 
     items.forEach(item => {
       item.tags = JSON.parse(item.tags || '[]');
@@ -79,7 +74,9 @@ export const dumpCommand = new Command('dump')
     // Get links if requested
     let links = [];
     if (options.links !== false) {
-      links = db.prepare(`
+      links = db
+        .prepare(
+          `
         SELECT l.*,
                cf.content as from_content, cf.type as from_type,
                ct.content as to_content, ct.type as to_type
@@ -87,7 +84,9 @@ export const dumpCommand = new Command('dump')
         JOIN context cf ON l.from_id = cf.id
         JOIN context ct ON l.to_id = ct.id
         WHERE cf.workspace_id = ?
-      `).all(workspace.id);
+      `
+        )
+        .all(workspace.id);
     }
 
     // Build markdown
@@ -111,7 +110,9 @@ export const dumpCommand = new Command('dump')
       const notes = items.filter(i => i.type === 'note');
       const tasks = items.filter(i => i.type === 'task');
       const entities = items.filter(i => i.type === 'entity');
-      const other = items.filter(i => !['constraint', 'decision', 'note', 'task', 'entity'].includes(i.type));
+      const other = items.filter(
+        i => !['constraint', 'decision', 'note', 'task', 'entity'].includes(i.type)
+      );
 
       if (constraints.length > 0) {
         lines.push('## Constraints');
@@ -193,7 +194,9 @@ export const dumpCommand = new Command('dump')
     // Add footer
     lines.push('---');
     lines.push('');
-    lines.push(`*${items.length} context items${links.length > 0 ? `, ${links.length} relationships` : ''}*`);
+    lines.push(
+      `*${items.length} context items${links.length > 0 ? `, ${links.length} relationships` : ''}*`
+    );
 
     const content = lines.join('\n');
 
