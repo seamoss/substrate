@@ -1,5 +1,9 @@
 import { Command } from 'commander';
+import { createRequire } from 'module';
 import { mountCommand } from './commands/mount.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 import { contextCommand } from './commands/context.js';
 import { briefCommand } from './commands/brief.js';
 import { initCommand } from './commands/init.js';
@@ -21,7 +25,7 @@ export const program = new Command();
 program
   .name('substrate')
   .description('Substrate - Shared context layer for humans and agents')
-  .version('0.1.0');
+  .version(version);
 
 // Core commands
 program.addCommand(initCommand);
