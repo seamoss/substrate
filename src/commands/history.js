@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { getDb } from '../db/local.js';
+import { getDb, searchContext } from '../db/local.js';
 import { formatJson, heading, contextItem, info, dim, shortId } from '../lib/output.js';
 import chalk from 'chalk';
 
@@ -218,27 +218,32 @@ export const recallCommand = new Command('recall')
       return;
     }
 
-    // Build query
-    let sql = `
-      SELECT * FROM context
-      WHERE workspace_id = ? AND created_at >= ?
-    `;
-    const params = [workspace.id, cutoff];
-
+    // Use FTS5 when a search query is provided, otherwise time-based query
+    let items;
     if (query) {
-      sql += ` AND content LIKE ?`;
-      params.push(`%${query}%`);
+      items = searchContext(db, workspace.id, query, {
+        type: options.type,
+        limit: parseInt(options.limit)
+      });
+      // Filter to time window after FTS search
+      items = items.filter(i => i.created_at >= cutoff);
+    } else {
+      let sql = `
+        SELECT * FROM context
+        WHERE workspace_id = ? AND created_at >= ? AND deleted_at IS NULL
+      `;
+      const params = [workspace.id, cutoff];
+
+      if (options.type) {
+        sql += ` AND type = ?`;
+        params.push(options.type);
+      }
+
+      sql += ` ORDER BY created_at DESC LIMIT ?`;
+      params.push(parseInt(options.limit));
+
+      items = db.prepare(sql).all(...params);
     }
-
-    if (options.type) {
-      sql += ` AND type = ?`;
-      params.push(options.type);
-    }
-
-    sql += ` ORDER BY created_at DESC LIMIT ?`;
-    params.push(parseInt(options.limit));
-
-    const items = db.prepare(sql).all(...params);
 
     items.forEach(item => {
       item.tags = JSON.parse(item.tags || '[]');

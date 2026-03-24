@@ -178,6 +178,9 @@ export function getDb() {
   // Run migrations for existing databases
   runMigrations(db);
 
+  // Initialize FTS5 full-text search
+  initFts(db);
+
   return db;
 }
 
@@ -223,6 +226,126 @@ function runMigrations(db) {
 
   // Always ensure the project_id index exists (handles both new and migrated DBs)
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_project_id ON workspaces(project_id)');
+}
+
+/**
+ * Initialize FTS5 full-text search on the context table.
+ *
+ * Creates an external-content FTS5 virtual table backed by the context table.
+ * Adds triggers to keep the FTS index in sync on INSERT, UPDATE, and DELETE.
+ * On first run, rebuilds the index from existing rows.
+ *
+ * @param {import('better-sqlite3').Database} db - The database instance
+ * @private
+ */
+function initFts(db) {
+  // Create FTS5 virtual table (external content, backed by context table)
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS context_fts USING fts5(
+      content,
+      tags,
+      content='context',
+      content_rowid='rowid'
+    );
+  `);
+
+  // Create triggers to keep FTS in sync
+  // We use IF NOT EXISTS pattern via try/catch since SQLite doesn't support
+  // CREATE TRIGGER IF NOT EXISTS in all versions
+  try {
+    db.exec(`
+      CREATE TRIGGER context_ai AFTER INSERT ON context BEGIN
+        INSERT INTO context_fts(rowid, content, tags)
+        VALUES (new.rowid, new.content, new.tags);
+      END;
+    `);
+  } catch (_) {
+    // Trigger already exists
+  }
+
+  try {
+    db.exec(`
+      CREATE TRIGGER context_ad AFTER DELETE ON context BEGIN
+        INSERT INTO context_fts(context_fts, rowid, content, tags)
+        VALUES ('delete', old.rowid, old.content, old.tags);
+      END;
+    `);
+  } catch (_) {
+    // Trigger already exists
+  }
+
+  try {
+    db.exec(`
+      CREATE TRIGGER context_au AFTER UPDATE ON context BEGIN
+        INSERT INTO context_fts(context_fts, rowid, content, tags)
+        VALUES ('delete', old.rowid, old.content, old.tags);
+        INSERT INTO context_fts(rowid, content, tags)
+        VALUES (new.rowid, new.content, new.tags);
+      END;
+    `);
+  } catch (_) {
+    // Trigger already exists
+  }
+
+  // Rebuild FTS index if it's empty but context table has rows
+  const ftsCount = db.prepare('SELECT COUNT(*) as count FROM context_fts').get();
+  const contextCount = db.prepare('SELECT COUNT(*) as count FROM context').get();
+  if (ftsCount.count === 0 && contextCount.count > 0) {
+    db.exec("INSERT INTO context_fts(context_fts) VALUES('rebuild')");
+  }
+}
+
+/**
+ * Search context using FTS5 full-text search.
+ *
+ * Falls back to LIKE query if FTS fails (e.g., invalid query syntax).
+ *
+ * @param {import('better-sqlite3').Database} db - The database instance
+ * @param {string} workspaceId - Workspace UUID
+ * @param {string} query - Search query
+ * @param {Object} [options]
+ * @param {string} [options.type] - Filter by context type
+ * @param {number} [options.limit=20] - Max results
+ * @returns {Object[]} Matching context items sorted by relevance
+ */
+export function searchContext(db, workspaceId, query, options = {}) {
+  const { type, limit = 20 } = options;
+
+  // Try FTS5 first
+  try {
+    let sql = `
+      SELECT c.*, rank
+      FROM context c
+      JOIN context_fts fts ON c.rowid = fts.rowid
+      WHERE context_fts MATCH ? AND c.workspace_id = ? AND c.deleted_at IS NULL
+    `;
+    const params = [query, workspaceId];
+
+    if (type) {
+      sql += ' AND c.type = ?';
+      params.push(type);
+    }
+
+    sql += ' ORDER BY rank LIMIT ?';
+    params.push(limit);
+
+    return db.prepare(sql).all(...params);
+  } catch (_) {
+    // FTS query failed (invalid syntax, etc.) -- fall back to LIKE
+    let sql =
+      'SELECT * FROM context WHERE workspace_id = ? AND content LIKE ? AND deleted_at IS NULL';
+    const params = [workspaceId, `%${query}%`];
+
+    if (type) {
+      sql += ' AND type = ?';
+      params.push(type);
+    }
+
+    sql += ' ORDER BY created_at DESC LIMIT ?';
+    params.push(limit);
+
+    return db.prepare(sql).all(...params);
+  }
 }
 
 /**

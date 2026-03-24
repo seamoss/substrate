@@ -42,8 +42,11 @@ export const addCommand = new Command('add')
   .option('--tag <tags>', 'Comma-separated tags')
   .option('-s, --scope <scope>', 'Scope path', '*')
   .option('-f, --force', 'Skip duplicate check')
+  .option('-y, --yes', 'Non-interactive mode (skip duplicate check, same as --force)')
   .option('--json', 'Output as JSON')
   .action(async (content, options) => {
+    // --yes is an alias for --force (for agent workflows)
+    if (options.yes) options.force = true;
     const db = getDb();
 
     let workspace;
