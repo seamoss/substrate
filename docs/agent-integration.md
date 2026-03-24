@@ -123,11 +123,13 @@ The agent reads instructions from your `CLAUDE.md` file and executes CLI command
 The `brief` command supports multiple formats:
 
 ```bash
-substrate brief                  # JSON (default)
-substrate brief --format agent   # Optimized for AI agents
-substrate brief --format markdown # Clean markdown
-substrate brief --compact        # Plain text prompt
-substrate brief --human          # Human-readable with colors
+substrate brief                        # JSON (default)
+substrate brief --format agent         # Optimized for AI agents
+substrate brief --format markdown      # Clean markdown
+substrate brief --format claudemd      # For CLAUDE.md injection
+substrate brief --compact              # Plain text prompt
+substrate brief --budget medium        # Token-budgeted output (~8K tokens)
+substrate brief --human                # Human-readable with colors
 ```
 
 The `--format agent` output includes:
@@ -169,15 +171,27 @@ The MCP server exposes Substrate as native tools that agents can call directly.
    substrate mcp serve
    ```
 
-### Available Tools
+### Available Tools (v0.2.0)
 
-| Tool               | Description               |
-| ------------------ | ------------------------- |
-| `substrate_brief`  | Get project context       |
-| `substrate_add`    | Add context object        |
-| `substrate_recall` | Search context history    |
-| `substrate_digest` | Session summary           |
-| `substrate_link`   | Create relationship links |
+| Tool                | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `substrate_brief`   | Get project context (supports `token_budget`) |
+| `substrate_add`     | Add a context object                          |
+| `substrate_search`  | Full-text search across all context           |
+| `substrate_recall`  | Time-windowed search (legacy, wraps search)   |
+| `substrate_digest`  | Session summary                               |
+| `substrate_link`    | Create relationship links                     |
+| `substrate_session` | Start/end/status work sessions                |
+| `substrate_update`  | Update existing context by short ID           |
+| `substrate_delete`  | Soft-delete context by short ID               |
+
+### MCP Resources
+
+| URI                               | Description                       |
+| --------------------------------- | --------------------------------- |
+| `substrate://workspace/current`   | Current workspace info            |
+| `substrate://context/constraints` | All constraints (immutable facts) |
+| `substrate://session/active`      | Active session info and stats     |
 
 ### MCP Tool Schemas
 
@@ -187,10 +201,19 @@ The MCP server exposes Substrate as native tools that agents can call directly.
 ```json
 {
   "name": "substrate_brief",
-  "description": "Get project context for the current workspace",
+  "description": "Get project context. Supports token budgets for efficient context window usage.",
   "parameters": {
-    "compact": { "type": "boolean", "description": "Return plain text only" },
-    "tags": { "type": "string", "description": "Filter by tags (comma-separated)" }
+    "path": { "type": "string", "description": "Path to get context for (default: cwd)" },
+    "token_budget": {
+      "type": "number",
+      "description": "Max tokens (presets: 2000, 8000, 32000, 100000)"
+    },
+    "types": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Filter by context types"
+    },
+    "tags": { "type": "string", "description": "Comma-separated tag filter" }
   }
 }
 ```
@@ -206,8 +229,32 @@ The MCP server exposes Substrate as native tools that agents can call directly.
   "description": "Add a context object",
   "parameters": {
     "content": { "type": "string", "required": true },
-    "type": { "type": "string", "enum": ["note", "constraint", "decision", "task", "entity"] },
-    "tags": { "type": "string", "description": "Comma-separated tags" }
+    "type": {
+      "type": "string",
+      "enum": ["note", "constraint", "decision", "task", "entity", "runbook", "snippet"]
+    },
+    "tags": { "type": "string", "description": "Comma-separated tags" },
+    "scope": { "type": "string", "description": "Scope path pattern (default: *)" },
+    "path": { "type": "string", "description": "Working directory path" }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>substrate_search</summary>
+
+```json
+{
+  "name": "substrate_search",
+  "description": "Full-text search across all context (FTS5-powered)",
+  "parameters": {
+    "query": { "type": "string", "description": "Search term" },
+    "type": { "type": "string", "description": "Filter by type" },
+    "tag": { "type": "string", "description": "Filter by tag" },
+    "limit": { "type": "number", "description": "Max results (default: 20)" },
+    "path": { "type": "string", "description": "Working directory path" }
   }
 }
 ```
@@ -220,11 +267,13 @@ The MCP server exposes Substrate as native tools that agents can call directly.
 ```json
 {
   "name": "substrate_recall",
-  "description": "Search context history",
+  "description": "Search context from recent history (time-windowed)",
   "parameters": {
     "query": { "type": "string" },
     "type": { "type": "string" },
-    "hours": { "type": "number" }
+    "hours": { "type": "number", "description": "Hours to look back (default: 24)" },
+    "limit": { "type": "number", "description": "Max results (default: 20)" },
+    "path": { "type": "string" }
   }
 }
 ```
@@ -239,7 +288,8 @@ The MCP server exposes Substrate as native tools that agents can call directly.
   "name": "substrate_digest",
   "description": "Get summary of recent context additions",
   "parameters": {
-    "hours": { "type": "number", "default": 8 }
+    "hours": { "type": "number", "default": 8 },
+    "path": { "type": "string" }
   }
 }
 ```
@@ -254,12 +304,70 @@ The MCP server exposes Substrate as native tools that agents can call directly.
   "name": "substrate_link",
   "description": "Create a link between context objects",
   "parameters": {
-    "from": { "type": "string", "required": true },
-    "to": { "type": "string", "required": true },
+    "from": { "type": "string", "required": true, "description": "Source context short ID" },
+    "to": { "type": "string", "required": true, "description": "Target context short ID" },
     "relation": {
       "type": "string",
       "enum": ["relates_to", "depends_on", "blocks", "implements", "extends", "references"]
-    }
+    },
+    "path": { "type": "string" }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>substrate_session</summary>
+
+```json
+{
+  "name": "substrate_session",
+  "description": "Manage work sessions",
+  "parameters": {
+    "action": {
+      "type": "string",
+      "enum": ["start", "end", "status"],
+      "description": "Session action"
+    },
+    "name": { "type": "string", "description": "Session name (for start)" },
+    "path": { "type": "string" }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>substrate_update</summary>
+
+```json
+{
+  "name": "substrate_update",
+  "description": "Update an existing context object",
+  "parameters": {
+    "id": { "type": "string", "required": true, "description": "Context short ID" },
+    "content": { "type": "string" },
+    "type": { "type": "string" },
+    "tags": { "type": "string", "description": "New comma-separated tags" },
+    "scope": { "type": "string" },
+    "path": { "type": "string" }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>substrate_delete</summary>
+
+```json
+{
+  "name": "substrate_delete",
+  "description": "Soft-delete a context object",
+  "parameters": {
+    "id": { "type": "string", "required": true, "description": "Context short ID" },
+    "path": { "type": "string" }
   }
 }
 ```
@@ -435,8 +543,9 @@ The CLI now has duplicate detection built in:
 # This will warn if similar content exists
 substrate add "API responses must be JSON"
 
-# Use --force to add anyway
+# Use --force or --yes to add anyway (--yes is better for agent workflows)
 substrate add "API responses must be JSON" --force
+substrate add "API responses must be JSON" --yes
 ```
 
 ### Context not syncing across team

@@ -86,6 +86,7 @@ substrate add <content> [options]
 - `--tag <tags>` — Comma-separated tags
 - `-s, --scope <scope>` — Scope path (default: `*`)
 - `-f, --force` — Skip duplicate detection
+- `-y, --yes` — Non-interactive mode (same as `--force`, for agent workflows)
 - `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
@@ -180,8 +181,9 @@ substrate brief [path] [options]
 
 **Options:**
 
-- `-f, --format <format>` — Output format: `default`, `agent`, `markdown`
+- `-f, --format <format>` — Output format: `default`, `agent`, `markdown`, `claudemd`
 - `--compact` — Output prompt text only (legacy, use `--format`)
+- `--budget <tokens>` — Token budget: number or preset (`small`=2K, `medium`=8K, `large`=32K, `xl`=100K)
 - `--human` — Human-readable format with colors
 - `--no-links` — Exclude relationship info
 - `-t, --type <type>` — Filter by type
@@ -194,16 +196,31 @@ substrate brief [path] [options]
 - `default` — JSON with full context (default)
 - `agent` — Optimized for AI agents with session info
 - `markdown` — Clean markdown output
+- `claudemd` — Formatted for direct injection into CLAUDE.md files
+
+**Token Budgets:**
+
+When `--budget` is specified, items are ranked by a priority score (type weight, recency, link density, scope relevance, tag matching) and included until the budget is exhausted. Constraints are always included. Items that don't fit are summarized in an overflow section.
+
+```bash
+substrate brief --budget small     # ~2,000 tokens
+substrate brief --budget medium    # ~8,000 tokens
+substrate brief --budget large     # ~32,000 tokens
+substrate brief --budget xl        # ~100,000 tokens
+substrate brief --budget 5000      # Custom token count
+```
 
 **Examples:**
 
 ```bash
-substrate brief                    # JSON output
-substrate brief --format agent     # Agent-optimized output
-substrate brief --format markdown  # Clean markdown
-substrate brief --compact          # Plain text for prompts
-substrate brief --human            # Readable format with colors
-substrate brief --tag api,auth     # Filter by tags
+substrate brief                        # JSON output
+substrate brief --format agent         # Agent-optimized output
+substrate brief --format markdown      # Clean markdown
+substrate brief --format claudemd      # For CLAUDE.md injection
+substrate brief --compact              # Plain text for prompts
+substrate brief --budget medium        # Token-budgeted output
+substrate brief --human                # Readable format with colors
+substrate brief --tag api,auth         # Filter by tags
 ```
 
 **Agent Format Output:**
@@ -213,6 +230,15 @@ The `--format agent` output includes:
 - Active session status (if any)
 - Prioritized sections (constraints first)
 - Quick command reference
+
+**Budget Footer:**
+
+When using `--budget`, the output includes a footer showing token usage:
+
+```
+---
+2,450/8,000 tokens | 12/18 items
+```
 
 ---
 
@@ -525,7 +551,7 @@ substrate config set <key> <value>
 
 ## mcp
 
-MCP server for native agent integration.
+MCP server (v0.2.0) for native agent integration. Provides 9 tools and 3 resources.
 
 ### mcp serve
 
@@ -544,6 +570,28 @@ Check MCP configuration status.
 ```bash
 substrate mcp status
 ```
+
+### MCP Tools
+
+| Tool                | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `substrate_brief`   | Get project context (supports `token_budget`) |
+| `substrate_add`     | Add a context object                          |
+| `substrate_search`  | Full-text search across all context           |
+| `substrate_recall`  | Time-windowed search (legacy, wraps search)   |
+| `substrate_digest`  | Session summary                               |
+| `substrate_link`    | Create relationship links                     |
+| `substrate_session` | Start/end/status work sessions                |
+| `substrate_update`  | Update existing context by short ID           |
+| `substrate_delete`  | Soft-delete context by short ID               |
+
+### MCP Resources
+
+| URI                               | Description                       |
+| --------------------------------- | --------------------------------- |
+| `substrate://workspace/current`   | Current workspace info            |
+| `substrate://context/constraints` | All constraints (immutable facts) |
+| `substrate://session/active`      | Active session info and stats     |
 
 ---
 
@@ -714,7 +762,7 @@ substrate digest --hours 24   # Last 24 hours
 
 ## recall
 
-Search and recall context from history.
+Search and recall context from history. Uses FTS5 full-text search for ranked results when a query is provided.
 
 ```bash
 substrate recall [query] [options]

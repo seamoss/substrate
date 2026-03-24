@@ -39,7 +39,8 @@ substrate add "All API responses must be JSON" --type constraint
 substrate add "Using PostgreSQL for persistence" --type decision
 
 # Get context brief (for agents)
-substrate brief --compact
+substrate brief --format agent
+substrate brief --budget medium    # Token-aware output
 ```
 
 ## Core Concepts
@@ -76,7 +77,7 @@ substrate ls                                    # Get IDs
 substrate link add abc123 def456 --relation implements
 
 # Later, or on another machine...
-substrate brief --compact                       # Rehydrate context
+substrate brief --format agent                  # Rehydrate context
 
 # Share with teammates
 substrate sync push                             # Push to remote

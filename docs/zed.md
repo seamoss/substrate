@@ -40,7 +40,7 @@ This project uses Substrate for persistent context management.
 Always run this command first to load project context:
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
 ```
 ````
 
@@ -62,12 +62,14 @@ Use tags: `--tag api`, `--tag auth`, `--tag database`
 ## Quick Reference
 
 ```bash
-substrate brief --compact    # Load context first
-substrate add "..." -t TYPE  # Save context
-substrate ls                 # List recent
-substrate link add X Y       # Link items
-substrate digest             # Session summary
-substrate recall "query"     # Search history
+substrate brief --format agent      # Load context first
+substrate brief --format claudemd  # Output for CLAUDE.md injection
+substrate brief --budget medium    # Token-budgeted output (~8K tokens)
+substrate add "..." -t TYPE        # Save context
+substrate ls                       # List recent
+substrate link add X Y             # Link items
+substrate digest                   # Session summary
+substrate recall "query"           # Search history
 ```
 
 ```
@@ -131,7 +133,7 @@ Bring in relevant context alongside Substrate:
 Zed allows editing previous messages. If the AI didn't load Substrate context:
 
 1. Click on your message
-2. Add: "First run `substrate brief --compact`"
+2. Add: "First run `substrate brief --format agent`"
 3. Re-submit
 
 ### Checkpoints
@@ -177,7 +179,7 @@ In Zed's Agent Panel:
 @rules What does this project use for context management?
 ```
 
-The AI should recognize Substrate and offer to run `substrate brief --compact`.
+The AI should recognize Substrate and offer to run `substrate brief --format agent`.
 
 ## Troubleshooting
 

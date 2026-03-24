@@ -87,7 +87,11 @@ substrate ls --type constraint
 substrate ls --tag api
 
 # Get full context brief
-substrate brief --compact
+substrate brief --format agent
+
+# Alternative formats
+substrate brief --format claudemd  # Output for CLAUDE.md injection
+substrate brief --budget medium    # Token-budgeted output (~8K tokens)
 ```
 
 ## Working with Multiple Directories
@@ -178,7 +182,7 @@ substrate sync pull
 ### Quick Setup
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
 ```
 
 Copy the output into your agent's system prompt, or set up editor-specific integration:

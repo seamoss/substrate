@@ -36,7 +36,7 @@ This project uses Substrate for persistent context management.
 **Always run this command first** to load project context:
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
 ```
 ````
 
@@ -66,13 +66,15 @@ After completing significant work:
 ## Quick Reference
 
 ```bash
-substrate brief --compact    # Load context (START HERE)
-substrate add "..." -t TYPE  # Save context
-substrate ls                 # List recent context
-substrate ls --tag api       # Filter by tag
-substrate link add X Y       # Link related items
-substrate digest             # What was added this session
-substrate recall "query"     # Search history
+substrate brief --format agent      # Load context (START HERE)
+substrate brief --format claudemd  # Output for CLAUDE.md injection
+substrate brief --budget medium    # Token-budgeted output (~8K tokens)
+substrate add "..." -t TYPE        # Save context
+substrate ls                       # List recent context
+substrate ls --tag api             # Filter by tag
+substrate link add X Y             # Link related items
+substrate digest                   # What was added this session
+substrate recall "query"           # Search history
 ```
 
 ````
@@ -80,7 +82,7 @@ substrate recall "query"     # Search history
 ## How It Works
 
 1. Windsurf loads rules from `.windsurf/rules/` when you open the project
-2. Cascade sees the instruction to run `substrate brief --compact`
+2. Cascade sees the instruction to run `substrate brief --format agent`
 3. Context is loaded and Cascade follows stored constraints/decisions
 4. During work, Cascade captures new discoveries with `substrate add`
 
@@ -188,7 +190,7 @@ What project constraints and decisions should I know about?
 
 ````
 
-Cascade should run `substrate brief --compact` and summarize the context.
+Cascade should run `substrate brief --format agent` and summarize the context.
 
 ## Troubleshooting
 
@@ -212,7 +214,7 @@ If you're hitting character limits, keep the Substrate rule minimal:
 ```markdown
 # Substrate
 
-Run `substrate brief --compact` at session start.
+Run `substrate brief --format agent` at session start.
 Capture context with `substrate add "..." --type TYPE --tag TAG`.
 ```
 

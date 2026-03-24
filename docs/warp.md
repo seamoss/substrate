@@ -40,13 +40,13 @@ In Warp Settings → AI:
 When starting work, ask Warp's AI:
 
 ```
-Load project context with substrate brief --compact
+Load project context with substrate brief --format agent
 ```
 
 Or run directly:
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
 ```
 
 ### Capturing Context
@@ -84,7 +84,14 @@ Save common Substrate operations as Warp Workflows:
 Create a workflow named "substrate-context":
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
+```
+
+Other useful format options:
+
+```bash
+substrate brief --format claudemd  # Output for CLAUDE.md injection
+substrate brief --budget medium    # Token-budgeted output (~8K tokens)
 ```
 
 Then run it with: `substrate-context`
@@ -116,7 +123,7 @@ substrate digest --hours ${1:8}
 ### Session Start
 
 1. Navigate to your project
-2. Run `substrate brief --compact` or your workflow
+2. Run `substrate brief --format agent` or your workflow
 3. Review constraints and decisions
 
 ### During Work
@@ -153,7 +160,7 @@ Start typing `substrate` and Warp will show command completions based on your hi
 
 ### Combine with Warp Blocks
 
-Warp organizes terminal output into blocks. After running `substrate brief --compact`, you can:
+Warp organizes terminal output into blocks. After running `substrate brief --format agent`, you can:
 
 - Copy the block output
 - Share it with teammates
@@ -186,7 +193,7 @@ SUBSTRATE_API_URL=https://your-substrate-server.com
 
 ```bash
 # Start of session - load context
-$ substrate brief --compact
+$ substrate brief --format agent
 ## Project Context: myapp
 
 ### Constraints

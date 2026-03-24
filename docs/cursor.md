@@ -45,7 +45,7 @@ This project uses Substrate for persistent context management.
 Run this command first to load project context:
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
 ```
 ````
 
@@ -67,12 +67,14 @@ Use tags: `--tag api`, `--tag auth`, `--tag database`
 ## Quick Reference
 
 ```bash
-substrate brief --compact    # Load context (START HERE)
-substrate add "..." -t TYPE  # Save context
-substrate ls                 # List recent
-substrate link add X Y       # Link items
-substrate digest             # Session summary
-substrate recall "query"     # Search history
+substrate brief --format agent      # Load context (START HERE)
+substrate brief --format claudemd  # Output for CLAUDE.md injection
+substrate brief --budget medium    # Token-budgeted output (~8K tokens)
+substrate add "..." -t TYPE        # Save context
+substrate ls                       # List recent
+substrate link add X Y             # Link items
+substrate digest                   # Session summary
+substrate recall "query"           # Search history
 ```
 
 ````
@@ -87,7 +89,7 @@ If you prefer a single file, create `.cursorrules` in your project root:
 This project uses Substrate for persistent context.
 
 ## On Session Start
-Run: substrate brief --compact
+Run: substrate brief --format agent
 
 ## Capture Protocol
 - Constraints: substrate add "..." --type constraint
@@ -95,7 +97,7 @@ Run: substrate brief --compact
 - Notes: substrate add "..." --type note
 
 ## Commands
-- substrate brief --compact (load context first)
+- substrate brief --format agent (load context first)
 - substrate add "..." -t TYPE (save context)
 - substrate ls (list recent)
 - substrate digest (session summary)
@@ -104,7 +106,7 @@ Run: substrate brief --compact
 ## How It Works
 
 1. Cursor reads the rules file when starting a session
-2. The AI sees instructions to run `substrate brief --compact`
+2. The AI sees instructions to run `substrate brief --format agent`
 3. Context is loaded and the AI follows stored constraints/decisions
 4. During work, the AI captures new context with `substrate add`
 
@@ -167,7 +169,7 @@ Start a new Cursor session and ask:
 What constraints and decisions exist for this project?
 ```
 
-Cursor should run `substrate brief --compact` and show you the stored context.
+Cursor should run `substrate brief --format agent` and show you the stored context.
 
 ## Troubleshooting
 

@@ -39,7 +39,7 @@ This project uses Substrate for persistent context management across sessions.
 Before starting any work, load the project context:
 
 ```bash
-substrate brief --compact
+substrate brief --format agent
 ```
 ````
 
@@ -75,17 +75,19 @@ substrate link add <id1> <id2> --relation implements
 
 ## Quick Reference
 
-| Action          | Command                                 |
-| --------------- | --------------------------------------- |
-| Load context    | `substrate brief --compact`             |
-| Add constraint  | `substrate add "..." --type constraint` |
-| Add decision    | `substrate add "..." --type decision`   |
-| Add note        | `substrate add "..." --type note`       |
-| List recent     | `substrate ls`                          |
-| Filter by tag   | `substrate ls --tag api`                |
-| Link items      | `substrate link add X Y`                |
-| Session summary | `substrate digest`                      |
-| Search history  | `substrate recall "query"`              |
+| Action           | Command                                 |
+| ---------------- | --------------------------------------- |
+| Load context     | `substrate brief --format agent`        |
+| CLAUDE.md output | `substrate brief --format claudemd`     |
+| Budgeted output  | `substrate brief --budget medium`       |
+| Add constraint   | `substrate add "..." --type constraint` |
+| Add decision     | `substrate add "..." --type decision`   |
+| Add note         | `substrate add "..." --type note`       |
+| List recent      | `substrate ls`                          |
+| Filter by tag    | `substrate ls --tag api`                |
+| Link items       | `substrate link add X Y`                |
+| Session summary  | `substrate digest`                      |
+| Search history   | `substrate recall "query"`              |
 
 ## Tags
 
@@ -181,7 +183,7 @@ The instructions file should tell Copilot *how* to work with Substrate, not cont
 
 **Good:**
 ```markdown
-Load project context with: substrate brief --compact
+Load project context with: substrate brief --format agent
 ````
 
 **Avoid:**
@@ -206,7 +208,7 @@ Copilot benefits from knowing your stack:
 - Tailwind CSS
 - Deployed on Vercel
 
-Run `substrate brief --compact` for detailed constraints and decisions.
+Run `substrate brief --format agent` for detailed constraints and decisions.
 ```
 
 ### Use with Copilot Agents

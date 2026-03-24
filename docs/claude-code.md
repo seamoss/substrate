@@ -84,14 +84,16 @@ After completing significant work:
 ### Quick Reference
 
 ```bash
-substrate brief --format agent  # Load context (do this first!)
-substrate add "..." -t TYPE     # Save context
-substrate ls                    # List recent context
-substrate extract diff          # Suggest context from changes
-substrate link add X Y          # Link related items
-substrate session status        # Check active session
-substrate digest                # Session summary
-substrate recall "query"        # Search history
+substrate brief --format agent    # Load context (do this first!)
+substrate brief --format claudemd # Output for CLAUDE.md injection
+substrate brief --budget medium   # Token-budgeted output (~8K tokens)
+substrate add "..." -t TYPE       # Save context
+substrate ls                      # List recent context
+substrate extract diff            # Suggest context from changes
+substrate link add X Y            # Link related items
+substrate session status          # Check active session
+substrate digest                  # Session summary
+substrate recall "query"          # Search history
 ```
 ````
 
@@ -135,12 +137,14 @@ substrate session start "current-task"
 ### Commands
 
 ```bash
-substrate brief --format agent  # Load context first
-substrate add "..." -t TYPE     # Capture context
-substrate extract diff          # Review changes for context
-substrate ls --tag payments     # Filter by tag
-substrate session end           # End session with stats
-substrate sync push             # Share with team
+substrate brief --format agent    # Load context first
+substrate brief --format claudemd # Output for CLAUDE.md injection
+substrate brief --budget medium   # Token-budgeted output (~8K tokens)
+substrate add "..." -t TYPE       # Capture context
+substrate extract diff            # Review changes for context
+substrate ls --tag payments       # Filter by tag
+substrate session end             # End session with stats
+substrate sync push               # Share with team
 ```
 
 ## Tech Stack
@@ -192,16 +196,18 @@ Always include a quick reference section so Claude can easily find commands:
 ### Quick Reference
 
 ```bash
-substrate brief --format agent  # START HERE - load context
-substrate session start "task"  # Track this session
-substrate add "..." -t TYPE     # Save context
-substrate ls                    # List recent
-substrate ls --type decision    # Filter by type
-substrate ls --tag api          # Filter by tag
-substrate extract diff          # Suggest context from changes
-substrate link add X Y          # Link items
-substrate session end           # End session with stats
-substrate recall "search"       # Find past context
+substrate brief --format agent    # START HERE - load context
+substrate brief --format claudemd # Output for CLAUDE.md injection
+substrate brief --budget medium   # Token-budgeted output (~8K tokens)
+substrate session start "task"    # Track this session
+substrate add "..." -t TYPE       # Save context
+substrate ls                      # List recent
+substrate ls --type decision      # Filter by type
+substrate ls --tag api            # Filter by tag
+substrate extract diff            # Suggest context from changes
+substrate link add X Y            # Link items
+substrate session end             # End session with stats
+substrate recall "search"         # Find past context
 ```
 ````
 
@@ -217,7 +223,7 @@ What constraints and decisions are stored for this project?
 
 ````
 
-Claude should run `substrate brief --compact` and report back the stored context.
+Claude should run `substrate brief --format agent` and report back the stored context.
 
 ## Troubleshooting
 
