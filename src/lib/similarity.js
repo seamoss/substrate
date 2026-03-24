@@ -17,6 +17,103 @@
  */
 
 /**
+ * Common English stopwords to filter out during comparison.
+ * @type {Set<string>}
+ * @constant
+ * @private
+ */
+const STOPWORDS = new Set([
+  'the',
+  'a',
+  'an',
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'have',
+  'has',
+  'had',
+  'do',
+  'does',
+  'did',
+  'will',
+  'would',
+  'could',
+  'should',
+  'may',
+  'might',
+  'shall',
+  'can',
+  'need',
+  'must',
+  'and',
+  'but',
+  'or',
+  'nor',
+  'not',
+  'so',
+  'yet',
+  'both',
+  'either',
+  'neither',
+  'for',
+  'with',
+  'about',
+  'against',
+  'between',
+  'through',
+  'during',
+  'before',
+  'after',
+  'above',
+  'below',
+  'from',
+  'into',
+  'out',
+  'off',
+  'over',
+  'under',
+  'again',
+  'then',
+  'once',
+  'here',
+  'there',
+  'when',
+  'where',
+  'why',
+  'how',
+  'all',
+  'each',
+  'every',
+  'any',
+  'few',
+  'more',
+  'most',
+  'other',
+  'some',
+  'such',
+  'than',
+  'too',
+  'very',
+  'this',
+  'that',
+  'these',
+  'those',
+  'its',
+  'his',
+  'her',
+  'their',
+  'our',
+  'what',
+  'which',
+  'who',
+  'whom'
+]);
+
+/**
  * Normalize text for comparison by lowercasing, trimming, and collapsing whitespace.
  *
  * @param {string} text - The text to normalize
@@ -28,16 +125,35 @@ function normalize(text) {
 }
 
 /**
- * Extract significant words from text (words longer than 2 characters).
+ * Extract significant words from text, filtering out stopwords.
  *
  * @param {string} text - The text to extract words from
+ * @param {boolean} [filterStopwords=true] - Whether to remove stopwords
  * @returns {string[]} Array of significant words
  * @private
  */
-function getWords(text) {
-  return normalize(text)
+function getWords(text, filterStopwords = true) {
+  const words = normalize(text)
     .split(/\s+/)
     .filter(w => w.length > 2);
+  if (!filterStopwords) return words;
+  return words.filter(w => !STOPWORDS.has(w));
+}
+
+/**
+ * Generate character trigrams from text.
+ *
+ * @param {string} text - The text to generate trigrams from
+ * @returns {Set<string>} Set of character trigrams
+ * @private
+ */
+function getTrigrams(text) {
+  const norm = normalize(text);
+  const trigrams = new Set();
+  for (let i = 0; i <= norm.length - 3; i++) {
+    trigrams.add(norm.substring(i, i + 3));
+  }
+  return trigrams;
 }
 
 /**
@@ -97,11 +213,18 @@ export function textSimilarity(text1, text2) {
     return shorter.length / longer.length;
   }
 
-  // Word overlap (Jaccard)
+  // Word overlap (Jaccard) with stopword filtering
   const words1 = new Set(getWords(text1));
   const words2 = new Set(getWords(text2));
+  const wordSim = jaccardSimilarity(words1, words2);
 
-  return jaccardSimilarity(words1, words2);
+  // Trigram similarity for fuzzy matching (catches typos, rewordings)
+  const trigrams1 = getTrigrams(text1);
+  const trigrams2 = getTrigrams(text2);
+  const trigramSim = jaccardSimilarity(trigrams1, trigrams2);
+
+  // Return the higher of the two metrics
+  return Math.max(wordSim, trigramSim);
 }
 
 /**
@@ -123,14 +246,14 @@ export function textSimilarity(text1, text2) {
  * // Returns: [{ id: '...', type: 'constraint', content: 'API responses must be JSON', similarity: 75 }]
  */
 export function findSimilar(db, workspaceId, content, type, threshold = 0.6) {
-  // Get existing items of the same type (or all if checking broadly)
+  // Search up to 500 items (was 100) for better coverage
   const items = db
     .prepare(
       `
     SELECT id, type, content, tags FROM context
     WHERE workspace_id = ? AND deleted_at IS NULL
     ORDER BY created_at DESC
-    LIMIT 100
+    LIMIT 500
   `
     )
     .all(workspaceId);
@@ -140,7 +263,11 @@ export function findSimilar(db, workspaceId, content, type, threshold = 0.6) {
   for (const item of items) {
     const similarity = textSimilarity(content, item.content);
 
-    if (similarity >= threshold) {
+    // Type-aware thresholds: same-type duplicates use a lower threshold
+    // because they're more likely to be true duplicates
+    const effectiveThreshold = item.type === type ? Math.min(threshold, 0.55) : threshold;
+
+    if (similarity >= effectiveThreshold) {
       similar.push({
         id: item.id,
         type: item.type,
@@ -148,6 +275,9 @@ export function findSimilar(db, workspaceId, content, type, threshold = 0.6) {
         tags: JSON.parse(item.tags || '[]'),
         similarity: Math.round(similarity * 100)
       });
+
+      // Early termination: if we found a very high match, no need to keep searching
+      if (similarity >= 0.95) break;
     }
   }
 
