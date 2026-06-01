@@ -9,7 +9,7 @@ Identity and access control are whatever your git host already provides.
 ```
 your-repo/
   .substrate/
-    config.json         # project_id pin                          [committed]
+    config.json         # project_id + store config                [committed]
     workspace.json      # workspace manifest                       [committed]
     context.jsonl       # shared context items (source of truth)   [committed]
     links.jsonl         # shared links                             [committed]
@@ -56,20 +56,13 @@ deleted) propagate as local soft-deletes.
 
 ## Joining an existing project
 
-A fresh clone already carries the committed `.substrate/` files, so you can pull
-straight away — Substrate bootstraps a local workspace from `workspace.json`:
+Joining a project is just `git clone`. A fresh clone already carries the committed
+`.substrate/` directory, so the repository itself is the identity — there's nothing to
+pin. Pull straight away and Substrate bootstraps your local cache from `workspace.json`:
 
 ```bash
 git clone <repo-url>
 cd <repo>
-substrate sync pull
-```
-
-To attach a directory to a project you know the ID of (e.g. before any files
-exist locally), pin it first:
-
-```bash
-substrate project pin <project-id>
 substrate sync pull
 ```
 

@@ -205,7 +205,7 @@ Cascade should run `substrate brief --format agent` and summarize the context.
 ### Context not loading
 
 ```bash
-substrate status         # Check workspace mount
+substrate status         # Check the context store
 substrate sync pull      # Load the latest .substrate/ files into the cache
 ````
 

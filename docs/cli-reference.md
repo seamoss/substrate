@@ -13,13 +13,12 @@ All commands support:
 
 | Command   | Description                           |
 | --------- | ------------------------------------- |
-| `init`    | Initialize a new workspace            |
+| `init`    | Initialize a new context store        |
 | `add`     | Add context (shorthand)               |
 | `ls`      | List context (shorthand)              |
-| `status`  | Show mount status (shorthand)         |
+| `status`  | Show store status (shorthand)         |
 | `brief`   | Get context for agents                |
 | `context` | Manage context objects                |
-| `mount`   | Manage workspace mounts               |
 | `link`    | Manage relationships                  |
 | `related` | Explore graph connections             |
 | `sync`    | Sync context with `.substrate/` files |
@@ -36,7 +35,8 @@ All commands support:
 
 ## init
 
-Initialize a new workspace in the current directory.
+Initialize a new context store (`.substrate/`) in the current directory. One repo =
+one `.substrate/` = one context store.
 
 ```bash
 substrate init [name] [options]
@@ -44,11 +44,11 @@ substrate init [name] [options]
 
 **Arguments:**
 
-- `name` — Workspace name (default: directory name)
+- `name` — Store name (default: directory name)
 
 **Options:**
 
-- `-d, --description <text>` — Workspace description
+- `-d, --description <text>` — Store description
 - `--json` — Output as JSON
 
 **Examples:**
@@ -60,11 +60,10 @@ substrate init myproject --description "Main API service"
 
 **What it does:**
 
-1. Creates a workspace with a unique project ID
+1. Creates the `.substrate/` store with a unique project ID
 2. Writes the initial `.substrate/` files (`workspace.json`, `context.jsonl`, `links.jsonl`, `config.json`), ready to commit with git
-3. Mounts current directory to workspace
-4. Saves project ID to `.substrate/config.json`
-5. Adds `*.priv.jsonl` to the project `.gitignore` (personal context files are never committed)
+3. Saves project ID to `.substrate/config.json`
+4. Adds `*.priv.jsonl` to the project `.gitignore` (personal context files are never committed)
 
 ---
 
@@ -87,7 +86,6 @@ substrate add <content> [options]
 - `-s, --scope <scope>` — Scope path (default: `*`)
 - `-f, --force` — Skip duplicate detection
 - `-y, --yes` — Non-interactive mode (same as `--force`, for agent workflows)
-- `-w, --workspace <name>` — Workspace name
 - `--private` — Store as personal context in the gitignored `.substrate/context.priv.jsonl` instead of the shared `context.jsonl`; never committed
 - `--json` — Output as JSON
 
@@ -134,7 +132,6 @@ substrate ls [options]
 - `-t, --type <type>` — Filter by type
 - `--tag <tag>` — Filter by tag
 - `-n, --limit <n>` — Limit results (default: 20)
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Examples:**
@@ -150,7 +147,8 @@ substrate ls --json
 
 ## status
 
-Show mount status for current directory (shorthand for `mount status`).
+Show the status of the context store resolved for the current directory: the store
+name, root directory, context/link counts, and pending-sync status.
 
 ```bash
 substrate status [dir] [options]
@@ -194,7 +192,6 @@ substrate brief [path] [options]
 - `--no-links` — Exclude relationship info
 - `-t, --type <type>` — Filter by type
 - `--tag <tags>` — Filter by tags
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON (default)
 
 **Output Formats:**
@@ -270,64 +267,6 @@ Same as `substrate ls`. See above.
 
 ---
 
-## mount
-
-Manage workspace mounts.
-
-### mount add
-
-Mount a directory to a workspace.
-
-```bash
-substrate mount add <dir> [options]
-```
-
-**Arguments:**
-
-- `dir` — Directory to mount
-
-**Options:**
-
-- `-w, --workspace <name>` — Workspace name (required)
-- `-s, --scope <path>` — Scope within directory (default: `*`)
-- `-t, --tags <tags>` — Comma-separated tags
-- `--json` — Output as JSON
-
-**Examples:**
-
-```bash
-substrate mount add . --workspace myproject
-substrate mount add ./api --workspace platform --scope "src/*"
-```
-
-### mount status
-
-Show mount status.
-
-```bash
-substrate mount status [dir] [options]
-```
-
-### mount list
-
-List all mounts.
-
-```bash
-substrate mount list [options]
-substrate mount ls [options]
-```
-
-### mount remove
-
-Remove a mount.
-
-```bash
-substrate mount remove <path> [options]
-substrate mount rm <path> [options]
-```
-
----
-
 ## link
 
 Manage relationships between context objects.
@@ -348,7 +287,6 @@ substrate link add <from> <to> [options]
 **Options:**
 
 - `-r, --relation <type>` — Relation type (default: `relates_to`)
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Relation types:**
@@ -406,7 +344,6 @@ substrate related <id> [options]
 **Options:**
 
 - `-d, --depth <n>` — Traversal depth, 1-2 (default: 1)
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Examples:**
@@ -430,7 +367,6 @@ substrate sync [options]
 
 **Options:**
 
-- `-w, --workspace <name>` — Workspace name
 - `-v, --verbose` — Show detailed output
 - `--json` — Output as JSON
 
@@ -461,7 +397,7 @@ git add .substrate && git commit -m "Update context" && git push
 
 Read the `.substrate/` files back into the local cache (run after `git pull`). Uses
 last-write-wins by each item's `updated_at`; tombstones (deleted items) propagate as
-local soft-deletes. On a fresh clone it bootstraps a workspace from `workspace.json`.
+local soft-deletes. On a fresh clone it bootstraps the local cache from `workspace.json`.
 
 ```bash
 git pull
@@ -472,7 +408,8 @@ substrate sync pull [options]
 
 ## project
 
-Manage project identity and pinning.
+Inspect project identity. The repository is the identity — to join a project you
+`git clone` it and run `substrate sync pull`; there's nothing to pin.
 
 ### project id
 
@@ -489,37 +426,6 @@ Show project details, including whether the `.substrate/` files are present loca
 ```bash
 substrate project info [options]
 ```
-
-### project pin
-
-Pin the current directory to an existing project ID. This just records the pin in
-`.substrate/config.json` — it does not contact any server. Run `substrate sync pull`
-afterwards to load the project's context into the local cache.
-
-```bash
-substrate project pin <id> [options]
-substrate sync pull
-```
-
-**Arguments:**
-
-- `id` — Project ID (UUID) to pin to
-
-**Options:**
-
-- `--force` — Overwrite existing config
-
-### project unpin
-
-Remove project pinning.
-
-```bash
-substrate project unpin [options]
-```
-
-**Options:**
-
-- `--delete-local` — Also delete local workspace data
 
 ---
 
@@ -630,7 +536,6 @@ substrate session start [name] [options]
 
 **Options:**
 
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Examples:**
@@ -638,7 +543,7 @@ substrate session start [name] [options]
 ```bash
 substrate session start
 substrate session start "implementing auth"
-substrate session start "bug-fix-123" --workspace myproject
+substrate session start "bug-fix-123"
 ```
 
 ### session end
@@ -651,7 +556,6 @@ substrate session end [options]
 
 **Options:**
 
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 Shows session statistics including:
@@ -670,7 +574,6 @@ substrate session status [options]
 
 **Options:**
 
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 ### session list
@@ -685,7 +588,6 @@ substrate session ls [options]
 **Options:**
 
 - `-n, --limit <n>` — Number of sessions to show (default: 10)
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 ---
@@ -701,7 +603,6 @@ substrate digest [options]
 **Options:**
 
 - `--hours <n>` — Time window (default: 8)
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Examples:**
@@ -731,7 +632,6 @@ substrate recall [query] [options]
 - `--tag <tag>` — Filter by tag
 - `--hours <n>` — Time window (default: 24)
 - `-n, --limit <n>` — Limit results (default: 20)
-- `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 
 **Examples:**
@@ -827,7 +727,6 @@ substrate dump [options]
 - `-o, --output <path>` — Output file (default: `.substrate/CONTEXT.md`)
 - `--flat` — Flat list without sections
 - `--no-links` — Exclude relationships
-- `-w, --workspace <name>` — Workspace name
 
 **Examples:**
 
@@ -855,8 +754,8 @@ substrate dump --flat --no-links
 | `~/.substrate/local.db`         | Local cache (rebuildable; never committed)             |
 | `~/.substrate/config.json`      | Global configuration                                   |
 | `~/.substrate/log`              | Global audit log                                       |
-| `.substrate/config.json`        | Project-level config (project ID pin)                  |
-| `.substrate/workspace.json`     | Workspace manifest (project_id, name, description)     |
+| `.substrate/config.json`        | Project-level config (project ID, store settings)      |
+| `.substrate/workspace.json`     | Store manifest (project_id, name, description)         |
 | `.substrate/context.jsonl`      | Shared context items (committed; source of truth)      |
 | `.substrate/links.jsonl`        | Shared links (committed)                               |
 | `.substrate/context.priv.jsonl` | Personal context items (gitignored via `*.priv.jsonl`) |

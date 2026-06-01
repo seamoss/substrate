@@ -28,7 +28,7 @@ npm install && npm link
 ## Quick Start
 
 ```bash
-# Initialize a workspace (no account needed)
+# Initialize the context store (no account needed)
 substrate init myproject
 
 # Add context
@@ -47,13 +47,14 @@ substrate brief --budget medium    # Token-aware output
 
 ## Core Concepts
 
-| Concept       | Description                                                   |
-| ------------- | ------------------------------------------------------------- |
-| **Workspace** | A shared context universe for a team or project               |
-| **Mount**     | Binds a workspace to a local directory                        |
-| **Context**   | Typed objects: constraints, decisions, notes, tasks, entities |
-| **Links**     | Graph relationships between context objects                   |
-| **Brief**     | Agent-optimized context retrieval                             |
+| Concept     | Description                                                                           |
+| ----------- | ------------------------------------------------------------------------------------- |
+| **Store**   | A repo's `.substrate/` directory — the context store, found by walking up like `.git` |
+| **Context** | Typed objects: constraints, decisions, notes, tasks, entities                         |
+| **Links**   | Graph relationships between context objects                                           |
+| **Brief**   | Agent-optimized context retrieval                                                     |
+
+One repo = one `.substrate/` = one context store. The repository is the identity; there's nothing to mount or pin.
 
 ## Context Types
 

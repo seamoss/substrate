@@ -202,7 +202,7 @@ Following the project rules, first load the Substrate context, then help me with
 ### Context not saving
 
 ```bash
-substrate status         # Check workspace mount
+substrate status         # Check the context store
 substrate sync status    # Check the .substrate/ files and pending items
 ```
 

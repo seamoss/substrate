@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks you through installing Substrate and creating your first workspace.
+This guide walks you through installing Substrate and creating your first context store.
 
 ## Prerequisites
 
@@ -29,9 +29,13 @@ This installs the `substrate` command globally.
 There are no accounts to create — Substrate stores context in committed
 `.substrate/` files and uses git to share it. See [Sync & Sharing](sync.md).
 
-## Create Your First Workspace
+## Create Your First Context Store
 
-### Initialize a Workspace
+### Initialize the Store
+
+Substrate lives in a `.substrate/` directory at the root of your repo, discovered by
+walking up from the current directory like git finds `.git`. One repo = one
+`.substrate/` = one context store.
 
 ```bash
 cd ~/projects/myproject
@@ -40,7 +44,7 @@ substrate init myproject
 
 This:
 
-1. Creates a workspace named "myproject"
+1. Creates the `.substrate/` store named "myproject"
 2. Generates a unique project ID (UUID)
 3. Saves config to `.substrate/config.json`
 4. Writes the initial `.substrate/` files, ready to commit with git
@@ -83,21 +87,7 @@ substrate brief --format claudemd  # Output for CLAUDE.md injection
 substrate brief --budget medium    # Token-budgeted output (~8K tokens)
 ```
 
-## Working with Multiple Directories
-
-### Mount Additional Directories
-
-```bash
-# Mount another repo to the same workspace
-cd ~/projects/api-service
-substrate mount add . --workspace myproject
-
-# Check mount status
-substrate mount status
-substrate mount list
-```
-
-### Scoped Context
+## Scoped Context
 
 Add context that only applies to specific paths:
 
@@ -176,9 +166,12 @@ substrate project id
 
 ### Join an Existing Project
 
+You join a project simply by cloning the repo — the committed `.substrate/` directory
+comes with it. The repository is the identity, so there's nothing to pin:
+
 ```bash
 git clone <repo-url> && cd <repo>
-substrate sync pull          # bootstraps a workspace from the committed files
+substrate sync pull          # loads the committed .substrate/ files into your local cache
 ```
 
 ## Using with AI Agents

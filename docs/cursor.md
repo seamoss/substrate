@@ -184,7 +184,7 @@ Cursor should run `substrate brief --format agent` and show you the stored conte
 ### Context not loading
 
 ```bash
-substrate status         # Check workspace
+substrate status         # Check the context store
 substrate sync pull      # Load the latest .substrate/ files into the cache
 ```
 

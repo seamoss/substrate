@@ -233,7 +233,7 @@ Make sure:
 
 ### Context isn't persisting
 
-Check you're in the right workspace and the files are present:
+Check you're in a repo with a `.substrate/` store and the files are present:
 
 ```bash
 substrate status

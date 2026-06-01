@@ -228,7 +228,7 @@ Copilot coding agent also supports custom instructions. The same `.github/copilo
 ### Context not loading
 
 ```bash
-substrate status         # Check workspace
+substrate status         # Check the context store
 substrate sync pull      # Load the latest .substrate/ files into the cache
 ```
 
