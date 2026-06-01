@@ -64,7 +64,7 @@ substrate init myproject --description "Main API service"
 2. Writes the initial `.substrate/` files (`workspace.json`, `context.jsonl`, `links.jsonl`, `config.json`), ready to commit with git
 3. Mounts current directory to workspace
 4. Saves project ID to `.substrate/config.json`
-5. Adds `.substrate.priv/` to the project `.gitignore` (the private store is never committed)
+5. Adds `*.priv.jsonl` to the project `.gitignore` (personal context files are never committed)
 
 ---
 
@@ -88,12 +88,12 @@ substrate add <content> [options]
 - `-f, --force` — Skip duplicate detection
 - `-y, --yes` — Non-interactive mode (same as `--force`, for agent workflows)
 - `-w, --workspace <name>` — Workspace name
-- `--private` — Store in the gitignored personal store (`.substrate.priv/`) instead of the shared `.substrate/` files; never committed
+- `--private` — Store as personal context in the gitignored `.substrate/context.priv.jsonl` instead of the shared `context.jsonl`; never committed
 - `--json` — Output as JSON
 
 **Shared vs. private:**
 
-By default an item is **shared** — it lives in the committed `.substrate/` files (the "collective mind"). With `--private` the item goes to the gitignored `.substrate.priv/` personal store, for machine-specific or personal context that should never be committed. See [Sync & Sharing](sync.md).
+By default an item is **shared** — it lives in the committed `.substrate/context.jsonl` (the "collective mind"). With `--private` the item goes to the sibling `.substrate/context.priv.jsonl`, which is gitignored (via the `*.priv.jsonl` pattern) — for machine-specific or personal context that should never be committed. See [Sync & Sharing](sync.md).
 
 **Duplicate Detection:**
 

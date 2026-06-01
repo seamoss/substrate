@@ -96,6 +96,7 @@ git add .substrate && git commit -m "..." && git push
 ### Editor & Tool Integrations
 
 - [Claude Code plugin](plugins/substrate/README.md) — installable plugin: asks once per project to track context, captures decisions/constraints, and registers the MCP server
+- [Codex & other agents](plugins/codex/README.md) — portable `AGENTS.md` protocol + MCP config for Codex, Cursor, Windsurf, etc.
 - [Claude Code](docs/claude-code.md) — CLAUDE.md integration
 - [Cursor](docs/cursor.md) — .cursor/rules integration
 - [Windsurf](docs/windsurf.md) — .windsurf/rules integration
