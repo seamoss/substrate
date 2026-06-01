@@ -15,7 +15,6 @@ GitHub Copilot supports custom instructions through:
 
 ```bash
 npm install -g substrate-cli
-substrate auth init
 ```
 
 ### 2. Initialize Your Project
@@ -24,6 +23,9 @@ substrate auth init
 cd your-project
 substrate init your-project
 ```
+
+There are no accounts or API keys — Substrate stores context in committed
+`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
 
 ### 3. Create Copilot Instructions
 
@@ -124,7 +126,7 @@ When working on API files:
 
 2. After modifying endpoints, capture changes:
    ```bash
-   substrate add "POST /users requires Bearer token" --type constraint --tag api
+   substrate add "POST /users requires an idempotency key" --type constraint --tag api
    ```
 
 ````
@@ -226,8 +228,8 @@ Copilot coding agent also supports custom instructions. The same `.github/copilo
 ### Context not loading
 
 ```bash
-substrate auth status    # Verify authentication
 substrate status         # Check workspace
+substrate sync pull      # Load the latest .substrate/ files into the cache
 ```
 
 ### Instructions not appearing in References

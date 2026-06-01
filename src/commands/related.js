@@ -1,9 +1,7 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
-import { api } from '../lib/api.js';
 import { error, info, formatJson, dim, shortId } from '../lib/output.js';
 import chalk from 'chalk';
-import ora from 'ora';
 
 function findWorkspaceForCwd() {
   const db = getDb();
@@ -53,7 +51,6 @@ export const relatedCommand = new Command('related')
   .option('-d, --depth <n>', 'Traversal depth (1-2)', '1')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
-  .option('--local', 'Use local links only (offline mode)')
   .action(async (id, options) => {
     const db = getDb();
     const depth = Math.min(2, Math.max(1, parseInt(options.depth) || 1));
@@ -83,33 +80,10 @@ export const relatedCommand = new Command('related')
     const item = result.item;
     item.tags = JSON.parse(item.tags || '[]');
 
-    // Try remote graph traversal first (uses SurrealDB's native graph queries)
-    let related = [];
-    let source = 'local';
+    // Graph traversal over the local link cache.
+    const related = [];
 
-    const spinner = options.json ? null : ora('Exploring graph...').start();
-
-    if (!options.local && workspace.remote_id) {
-      try {
-        const remoteResult = await api.getRelated(
-          workspace.remote_id,
-          item.remote_id || item.id,
-          depth
-        );
-
-        if (!remoteResult.error && !remoteResult.offline) {
-          related = remoteResult.related || [];
-          source = 'remote';
-        }
-      } catch (err) {
-        // Fall back to local
-      }
-    }
-
-    spinner?.stop();
-
-    // Fallback: use local SQLite links
-    if (source === 'local') {
+    {
       const links = db
         .prepare(
           `
@@ -199,8 +173,7 @@ export const relatedCommand = new Command('related')
             tags: item.tags
           },
           related,
-          depth,
-          source
+          depth
         })
       );
       return;
@@ -246,7 +219,4 @@ export const relatedCommand = new Command('related')
     }
 
     console.log();
-    if (source === 'local') {
-      dim(`  Source: local cache`);
-    }
   });

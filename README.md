@@ -2,14 +2,14 @@
 
 A shared context layer for humans and AI agents.
 
-Substrate provides persistent, graph-backed context that syncs across contributors, devices, and projects—without polluting repositories with documentation files.
+Substrate provides persistent, graph-backed context that syncs across contributors and devices through **git** — context lives in committed `.substrate/` files, with no server and no accounts.
 
 ## Why Substrate?
 
 - **Agents lose context** between sessions. Substrate gives them deterministic retrieval.
-- **Teams lose context** across repos and contributors. Substrate provides shared truth.
-- **Static docs rot**. Substrate context is dynamic and versioned.
-- **Repos are siloed**. Substrate context spans multiple projects.
+- **Teams lose context** across repos and contributors. Substrate provides shared truth, versioned alongside the code.
+- **Static docs rot**. Substrate context is structured and dynamic.
+- **No server to run**. Sync rides on the git infrastructure you already have; identity and access control are your git host's.
 
 ## Install
 
@@ -28,15 +28,17 @@ npm install && npm link
 ## Quick Start
 
 ```bash
-# Authenticate (creates anonymous account)
-substrate auth init
-
-# Initialize a workspace
+# Initialize a workspace (no account needed)
 substrate init myproject
 
 # Add context
 substrate add "All API responses must be JSON" --type constraint
 substrate add "Using PostgreSQL for persistence" --type decision
+substrate add "My local DB runs on port 5544" --type note --private  # personal, not committed
+
+# Share it: write the .substrate files, then commit with git
+substrate sync push
+git add .substrate && git commit -m "Add context" && git push
 
 # Get context brief (for agents)
 substrate brief --format agent
@@ -77,20 +79,23 @@ substrate ls                                    # Get IDs
 substrate link add abc123 def456 --relation implements
 
 # Later, or on another machine...
+git pull && substrate sync pull                 # Reconcile committed context into the local cache
 substrate brief --format agent                  # Rehydrate context
 
 # Share with teammates
-substrate sync push                             # Push to remote
+substrate sync push                             # Write the .substrate files
+git add .substrate && git commit -m "..." && git push
 ```
 
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) — Installation and first steps
 - [CLI Reference](docs/cli-reference.md) — Complete command documentation
-- [Authentication](docs/authentication.md) — Auth system and API keys
+- [Sync & Sharing](docs/sync.md) — Git-backed sync and the shared/private stores
 
 ### Editor & Tool Integrations
 
+- [Claude Code plugin](plugins/substrate/README.md) — installable plugin: asks once per project to track context, captures decisions/constraints, and registers the MCP server
 - [Claude Code](docs/claude-code.md) — CLAUDE.md integration
 - [Cursor](docs/cursor.md) — .cursor/rules integration
 - [Windsurf](docs/windsurf.md) — .windsurf/rules integration

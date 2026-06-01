@@ -17,7 +17,6 @@ import { projectCommand } from './commands/project.js';
 import { syncCommand } from './commands/sync.js';
 import { relatedCommand } from './commands/related.js';
 import { dumpCommand } from './commands/dump.js';
-import { authCommand } from './commands/auth.js';
 import { sessionCommand } from './commands/session.js';
 
 export const program = new Command();
@@ -55,9 +54,6 @@ program.addCommand(relatedCommand); // substrate related <id>
 
 // Export
 program.addCommand(dumpCommand); // substrate dump
-
-// Auth
-program.addCommand(authCommand); // substrate auth signup/verify/login/logout/keys/token
 
 // Sessions
 program.addCommand(sessionCommand); // substrate session start/end/status/list

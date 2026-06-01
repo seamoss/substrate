@@ -16,20 +16,17 @@ Claude Code automatically reads `CLAUDE.md` files in your project root and follo
 npm install -g substrate-cli
 ```
 
-### 2. Authenticate
-
-```bash
-substrate auth init
-```
-
-### 3. Initialize Your Project
+### 2. Initialize Your Project
 
 ```bash
 cd your-project
 substrate init your-project
 ```
 
-### 4. Create CLAUDE.md
+There are no accounts or API keys — Substrate stores context in committed
+`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
+
+### 3. Create CLAUDE.md
 
 Create a `CLAUDE.md` file in your project root with the Substrate protocol:
 
@@ -236,28 +233,26 @@ Make sure:
 
 ### Context isn't persisting
 
-Check authentication:
-```bash
-substrate auth status
-````
-
-Check you're in the right workspace:
+Check you're in the right workspace and the files are present:
 
 ```bash
 substrate status
+substrate sync status
 ```
 
 ### Team members see different context
 
-Make sure everyone has synced:
+Context is shared through committed `.substrate/` files, so sync through git:
 
 ```bash
-substrate sync pull   # Get latest from remote
-substrate sync push   # Push your changes
+git pull && substrate sync pull   # Load teammates' changes
+substrate sync push               # Write your changes to the files
+git add .substrate && git commit -m "Update context" && git push
 ```
 
 ## Next Steps
 
 - [CLI Reference](cli-reference.md) — All available commands
 - [Agent Integration](agent-integration.md) — MCP server setup for native integration
-- [Authentication](authentication.md) — API keys and workspace tokens
+- [Sync & Sharing](sync.md) — How git-backed sync works
+````

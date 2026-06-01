@@ -1,10 +1,8 @@
 import { Command } from 'commander';
 import { resolve } from 'path';
 import { getDb } from '../db/local.js';
-import { api } from '../lib/api.js';
 import { getProjectId } from '../lib/config.js';
 import { success, error, info, warn, formatJson, dim } from '../lib/output.js';
-import ora from 'ora';
 
 export const mountCommand = new Command('mount').description('Manage workspace mounts');
 
@@ -56,16 +54,6 @@ mountCommand
       VALUES (?, ?, ?, ?, ?, ?)
     `
     ).run(workspace.id, fullPath, options.scope, JSON.stringify(tags), now, now);
-
-    // Try to sync to remote
-    const spinner = options.json ? null : ora('Mounting...').start();
-    try {
-      await api.createMount(workspace.remote_id || workspace.name, fullPath, options.scope, tags);
-      spinner?.stop();
-    } catch (err) {
-      spinner?.stop();
-      // Offline is fine
-    }
 
     const mount = db.prepare('SELECT * FROM mounts WHERE path = ?').get(fullPath);
 

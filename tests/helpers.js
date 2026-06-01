@@ -3,7 +3,6 @@ import { randomUUID } from 'crypto';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { vi } from 'vitest';
 
 /**
  * Creates an isolated test database with the full schema.
@@ -47,6 +46,7 @@ export function createTestDb() {
       tags TEXT DEFAULT '[]',
       scope TEXT DEFAULT '*',
       meta TEXT DEFAULT '{}',
+      private INTEGER NOT NULL DEFAULT 0,
       remote_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -136,15 +136,15 @@ export function createMount(db, { workspaceId, path, scope = '*', tags = [] }) {
  */
 export function createContext(
   db,
-  { workspaceId, type = 'note', content, tags = [], scope = '*', meta = {} }
+  { workspaceId, type = 'note', content, tags = [], scope = '*', meta = {}, private: priv = 0 }
 ) {
   const id = randomUUID();
   const now = new Date().toISOString();
 
   db.prepare(
     `
-    INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, private, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `
   ).run(
     id,
@@ -154,6 +154,7 @@ export function createContext(
     JSON.stringify(tags),
     scope,
     JSON.stringify(meta),
+    priv ? 1 : 0,
     now,
     now
   );
@@ -192,40 +193,6 @@ export function createSession(db, { workspaceId, name = null, startedAt = null, 
   ).run(id, workspaceId, name, started, endedAt);
 
   return db.prepare('SELECT * FROM sessions WHERE id = ?').get(id);
-}
-
-/**
- * Mock the API module with default implementations.
- * All methods return successful responses by default.
- */
-export function createMockApi() {
-  return {
-    listWorkspaces: vi.fn().mockResolvedValue({ workspaces: [] }),
-    getWorkspace: vi.fn().mockResolvedValue({ workspace: null }),
-    createWorkspace: vi.fn().mockResolvedValue({ workspace: { id: 'remote-123' } }),
-    getWorkspaceByProjectId: vi.fn().mockResolvedValue({ workspace: null }),
-    listMounts: vi.fn().mockResolvedValue({ mounts: [] }),
-    resolveMount: vi.fn().mockResolvedValue({ mount: null }),
-    createMount: vi.fn().mockResolvedValue({ mount: { id: 1 } }),
-    listContext: vi.fn().mockResolvedValue({ context: [] }),
-    getBrief: vi.fn().mockResolvedValue({ brief: {} }),
-    addContext: vi.fn().mockResolvedValue({ context: { id: 'ctx-123' } }),
-    linkContext: vi.fn().mockResolvedValue({ link: { id: 1 } }),
-    getRelated: vi.fn().mockResolvedValue({ related: [] }),
-    syncPush: vi.fn().mockResolvedValue({ synced: [] }),
-    syncPull: vi.fn().mockResolvedValue({ changes: [] }),
-    health: vi.fn().mockResolvedValue({ status: 'ok' }),
-    init: vi.fn().mockResolvedValue({ api_key: 'test-key' }),
-    signup: vi.fn().mockResolvedValue({ message: 'Code sent' }),
-    verify: vi.fn().mockResolvedValue({ api_key: 'test-key' }),
-    me: vi.fn().mockResolvedValue({ user: { id: 'user-123' } }),
-    listKeys: vi.fn().mockResolvedValue({ keys: [] }),
-    createKey: vi.fn().mockResolvedValue({ key: { id: 'key-123' } }),
-    revokeKey: vi.fn().mockResolvedValue({ success: true }),
-    createWorkspaceToken: vi.fn().mockResolvedValue({ token: 'ws-token' }),
-    listWorkspaceTokens: vi.fn().mockResolvedValue({ tokens: [] }),
-    revokeWorkspaceToken: vi.fn().mockResolvedValue({ success: true })
-  };
 }
 
 /**

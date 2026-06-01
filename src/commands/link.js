@@ -1,9 +1,7 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
-import { api } from '../lib/api.js';
 import { success, error, info, formatJson, contextItem, shortId, dim } from '../lib/output.js';
 import chalk from 'chalk';
-import ora from 'ora';
 
 const RELATION_TYPES = [
   'relates_to',
@@ -136,21 +134,6 @@ linkCommand
       VALUES (?, ?, ?, ?)
     `
     ).run(fromItem.id, toItem.id, options.relation, now);
-
-    // Try to sync to remote
-    const spinner = options.json ? null : ora('Linking...').start();
-    try {
-      await api.linkContext(
-        workspace.remote_id || workspace.name,
-        fromItem.remote_id || fromItem.id,
-        toItem.remote_id || toItem.id,
-        options.relation
-      );
-      spinner?.stop();
-    } catch (err) {
-      spinner?.stop();
-      // Offline is fine
-    }
 
     if (options.json) {
       console.log(

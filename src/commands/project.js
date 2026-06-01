@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import { existsSync, unlinkSync } from 'fs';
 import { getDb } from '../db/local.js';
-import { api } from '../lib/api.js';
+import { resolveWorkspaceRoot } from '../lib/sync.js';
+import { hasWorkspaceFiles } from '../lib/files.js';
 import {
   getProjectId,
   getProjectConfigPath,
@@ -11,7 +12,6 @@ import {
 import { success, error, info, formatJson, dim } from '../lib/output.js';
 import chalk from 'chalk';
 import { randomUUID } from 'crypto';
-import ora from 'ora';
 
 export const projectCommand = new Command('project').description(
   'Manage project identity and pinning'
@@ -67,40 +67,21 @@ projectCommand
     // Get local workspace by project_id
     const workspace = db.prepare('SELECT * FROM workspaces WHERE project_id = ?').get(projectId);
 
-    // Check remote status
-    let remoteStatus = 'unknown';
-    let remoteWorkspace = null;
-    const spinner = options.json ? null : ora('Checking remote status...').start();
-    try {
-      const result = await api.getWorkspaceByProjectId(projectId);
-      if (result.workspace) {
-        remoteStatus = 'synced';
-        remoteWorkspace = result.workspace;
-      } else if (result.offline) {
-        remoteStatus = 'offline';
-      }
-      spinner?.stop();
-    } catch (err) {
-      spinner?.stop();
-      if (err.message?.includes('404')) {
-        remoteStatus = 'not_synced';
-      } else {
-        remoteStatus = 'offline';
-      }
-    }
+    const root = workspace ? resolveWorkspaceRoot(db, workspace) : null;
+    const filesPresent = root ? hasWorkspaceFiles(root) : false;
 
     const result = {
       project_id: projectId,
-      name: workspace?.name || remoteWorkspace?.name || null,
-      description: workspace?.description || remoteWorkspace?.description || null,
+      name: workspace?.name || null,
+      description: workspace?.description || null,
       local: workspace
         ? {
             id: workspace.id,
-            synced_at: workspace.synced_at,
-            remote_id: workspace.remote_id
+            synced_at: workspace.synced_at
           }
         : null,
-      remote_status: remoteStatus
+      files_present: filesPresent,
+      root
     };
 
     if (options.json) {
@@ -121,18 +102,16 @@ projectCommand
       console.log();
       console.log(`  ${chalk.dim('Local ID:')}    ${workspace.id}`);
       if (workspace.synced_at) {
-        console.log(`  ${chalk.dim('Last Sync:')}   ${workspace.synced_at}`);
+        console.log(`  ${chalk.dim('Last Write:')}  ${workspace.synced_at}`);
       }
     }
 
     console.log();
-    if (remoteStatus === 'synced') {
-      console.log(`  ${chalk.green('●')} Remote: Synced`);
-    } else if (remoteStatus === 'not_synced') {
-      console.log(`  ${chalk.yellow('●')} Remote: Not synced`);
-      dim('    Run "substrate sync push" to sync to remote');
-    } else if (remoteStatus === 'offline') {
-      console.log(`  ${chalk.gray('●')} Remote: Offline`);
+    if (filesPresent) {
+      console.log(`  ${chalk.green('●')} Files: present (${root}/.substrate/)`);
+    } else {
+      console.log(`  ${chalk.yellow('●')} Files: not written yet`);
+      dim('    Run "substrate sync push" to write .substrate files');
     }
     console.log();
   });
@@ -165,58 +144,17 @@ projectCommand
     let workspace = db.prepare('SELECT * FROM workspaces WHERE project_id = ?').get(id);
 
     if (!workspace) {
-      // Try to fetch from remote
-      const spinner = ora('Fetching project...').start();
-      try {
-        const result = await api.getWorkspaceByProjectId(id);
-        spinner.stop();
-        if (result.workspace) {
-          // Create local workspace from remote
-          const now = new Date().toISOString();
-          const localId = randomUUID();
+      // Create a local cache shell; `substrate sync pull` populates it from the
+      // committed .substrate files (and corrects the name from workspace.json).
+      const now = new Date().toISOString();
+      const localId = randomUUID();
 
-          db.prepare(
-            `
-            INSERT INTO workspaces (id, name, description, project_id, remote_id, created_at, updated_at, synced_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `
-          ).run(
-            localId,
-            result.workspace.name,
-            result.workspace.description || '',
-            id,
-            result.workspace.id,
-            now,
-            now,
-            now
-          );
+      db.prepare(
+        `INSERT INTO workspaces (id, name, description, project_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(localId, 'pending-sync', '', id, now, now);
 
-          workspace = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(localId);
-          info(`Fetched project "${result.workspace.name}" from remote`);
-        }
-      } catch (err) {
-        spinner.stop();
-        // Remote not available or project not found
-        if (err.message?.includes('404')) {
-          error('Project not found on remote server');
-          dim("  The project ID may be incorrect or the project hasn't been synced yet");
-          process.exit(1);
-        }
-        // Offline - we'll create a placeholder
-        info('Remote unavailable, creating local placeholder');
-
-        const now = new Date().toISOString();
-        const localId = randomUUID();
-
-        db.prepare(
-          `
-          INSERT INTO workspaces (id, name, description, project_id, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `
-        ).run(localId, 'pending-sync', '', id, now, now);
-
-        workspace = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(localId);
-      }
+      workspace = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(localId);
     }
 
     // Save project config
@@ -227,7 +165,7 @@ projectCommand
       info(`Workspace: ${workspace.name}`);
     }
     console.log();
-    dim('  Run "substrate sync pull" to fetch project context');
+    dim('  Run "substrate sync pull" to load project context from .substrate files');
   });
 
 // project unpin

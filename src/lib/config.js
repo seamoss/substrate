@@ -2,8 +2,8 @@
  * Configuration path utilities for Substrate CLI.
  *
  * Manages two types of configuration:
- * 1. **Global config** - Stored in `~/.substrate/` (API settings, auth, database)
- * 2. **Project config** - Stored in `.substrate/` in project root (project ID)
+ * 1. **Global config** - Stored in `~/.substrate/` (database cache)
+ * 2. **Project config** - Stored in `.substrate/` in project root (committed, shared)
  *
  * @module lib/config
  */
@@ -98,26 +98,6 @@ export function getDbPath() {
 export function getConfigPath() {
   ensureConfigDir();
   return CONFIG_PATH;
-}
-
-/**
- * Get the Substrate API server URL.
- *
- * Checks the `SUBSTRATE_API_URL` environment variable first,
- * falls back to the production server.
- *
- * @returns {string} The API server URL
- *
- * @example
- * // Default
- * getApiUrl(); // 'https://substrate.heavystack.io'
- *
- * // With env var
- * process.env.SUBSTRATE_API_URL = 'http://localhost:3000';
- * getApiUrl(); // 'http://localhost:3000'
- */
-export function getApiUrl() {
-  return process.env.SUBSTRATE_API_URL || 'https://substrate.heavystack.io';
 }
 
 /**

@@ -16,7 +16,6 @@ Warp is an AI-native terminal with built-in assistants. While it doesn't have fi
 
 ```bash
 npm install -g substrate-cli
-substrate auth init
 ```
 
 ### 2. Initialize Your Project
@@ -25,6 +24,9 @@ substrate auth init
 cd your-project
 substrate init your-project
 ```
+
+There are no accounts or API keys — Substrate stores context in committed
+`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
 
 ### 3. Configure Warp AI (Optional)
 
@@ -180,15 +182,6 @@ Warp translates this to:
 substrate ls --type constraint --tag api
 ```
 
-### Persistent Environment
-
-Warp supports persistent environment variables. If using a self-hosted Substrate:
-
-```bash
-# In Warp Settings → Environment
-SUBSTRATE_API_URL=https://your-substrate-server.com
-```
-
 ## Example Session
 
 ```bash
@@ -239,9 +232,12 @@ Warp AI learns from your usage. The more you use Substrate commands, the better 
 
 ### Context not syncing
 
+Context is shared through committed `.substrate/` files — git is the transport:
+
 ```bash
-substrate auth status
-substrate sync status
+substrate sync status             # Check the files and pending items
+git pull && substrate sync pull   # Load teammates' changes
+substrate sync push               # Write your changes, then commit with git
 ```
 
 ## Resources

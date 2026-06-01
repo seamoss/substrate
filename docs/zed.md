@@ -16,7 +16,6 @@ Zed's AI assistant supports custom context through:
 
 ```bash
 npm install -g substrate-cli
-substrate auth init
 ```
 
 ### 2. Initialize Your Project
@@ -25,6 +24,9 @@ substrate auth init
 cd your-project
 substrate init your-project
 ```
+
+There are no accounts or API keys — Substrate stores context in committed
+`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
 
 ### 3. Create Rules File
 
@@ -200,8 +202,8 @@ Following the project rules, first load the Substrate context, then help me with
 ### Context not saving
 
 ```bash
-substrate auth status    # Check auth
 substrate status         # Check workspace mount
+substrate sync status    # Check the .substrate/ files and pending items
 ```
 
 ## Resources

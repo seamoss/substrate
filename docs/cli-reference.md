@@ -11,27 +11,26 @@ All commands support:
 
 ## Commands Overview
 
-| Command   | Description                   |
-| --------- | ----------------------------- |
-| `init`    | Initialize a new workspace    |
-| `add`     | Add context (shorthand)       |
-| `ls`      | List context (shorthand)      |
-| `status`  | Show mount status (shorthand) |
-| `brief`   | Get context for agents        |
-| `context` | Manage context objects        |
-| `mount`   | Manage workspace mounts       |
-| `link`    | Manage relationships          |
-| `related` | Explore graph connections     |
-| `sync`    | Sync with remote server       |
-| `project` | Manage project identity       |
-| `config`  | Manage configuration          |
-| `mcp`     | MCP server for agents         |
-| `auth`    | Manage authentication         |
-| `session` | Manage work sessions          |
-| `digest`  | Session summary               |
-| `recall`  | Search history                |
-| `extract` | Extract context from changes  |
-| `dump`    | Export to markdown            |
+| Command   | Description                           |
+| --------- | ------------------------------------- |
+| `init`    | Initialize a new workspace            |
+| `add`     | Add context (shorthand)               |
+| `ls`      | List context (shorthand)              |
+| `status`  | Show mount status (shorthand)         |
+| `brief`   | Get context for agents                |
+| `context` | Manage context objects                |
+| `mount`   | Manage workspace mounts               |
+| `link`    | Manage relationships                  |
+| `related` | Explore graph connections             |
+| `sync`    | Sync context with `.substrate/` files |
+| `project` | Manage project identity               |
+| `config`  | Manage configuration                  |
+| `mcp`     | MCP server for agents                 |
+| `session` | Manage work sessions                  |
+| `digest`  | Session summary                       |
+| `recall`  | Search history                        |
+| `extract` | Extract context from changes          |
+| `dump`    | Export to markdown                    |
 
 ---
 
@@ -62,9 +61,10 @@ substrate init myproject --description "Main API service"
 **What it does:**
 
 1. Creates a workspace with a unique project ID
-2. Syncs workspace to remote server
+2. Writes the initial `.substrate/` files (`workspace.json`, `context.jsonl`, `links.jsonl`, `config.json`), ready to commit with git
 3. Mounts current directory to workspace
 4. Saves project ID to `.substrate/config.json`
+5. Adds `.substrate.priv/` to the project `.gitignore` (the private store is never committed)
 
 ---
 
@@ -88,7 +88,12 @@ substrate add <content> [options]
 - `-f, --force` — Skip duplicate detection
 - `-y, --yes` — Non-interactive mode (same as `--force`, for agent workflows)
 - `-w, --workspace <name>` — Workspace name
+- `--private` — Store in the gitignored personal store (`.substrate.priv/`) instead of the shared `.substrate/` files; never committed
 - `--json` — Output as JSON
+
+**Shared vs. private:**
+
+By default an item is **shared** — it lives in the committed `.substrate/` files (the "collective mind"). With `--private` the item goes to the gitignored `.substrate.priv/` personal store, for machine-specific or personal context that should never be committed. See [Sync & Sharing](sync.md).
 
 **Duplicate Detection:**
 
@@ -111,6 +116,7 @@ substrate add "All dates must be ISO 8601"
 substrate add "Using UUID v4 for IDs" --type decision
 substrate add "Rate limit is 100/min" --type constraint --tag api
 substrate add "Only applies to payments" --scope "src/payments/*"
+substrate add "My local DB runs on port 5544" --type note --private
 ```
 
 ---
@@ -252,7 +258,7 @@ Manage context objects.
 substrate context add <content> [options]
 ```
 
-Same as `substrate add`. See above.
+Same as `substrate add`, including the `--private` flag. See above.
 
 ### context list
 
@@ -401,7 +407,6 @@ substrate related <id> [options]
 
 - `-d, --depth <n>` — Traversal depth, 1-2 (default: 1)
 - `-w, --workspace <name>` — Workspace name
-- `--local` — Use local cache only
 - `--json` — Output as JSON
 
 **Examples:**
@@ -409,14 +414,15 @@ substrate related <id> [options]
 ```bash
 substrate related abc123
 substrate related abc123 --depth 2
-substrate related abc123 --local
 ```
 
 ---
 
 ## sync
 
-Sync local context with remote server.
+Reconcile the local cache (`~/.substrate/local.db`) with the committed `.substrate/`
+files (and the gitignored `*.priv.jsonl` personal files alongside them). There is no
+server — **git is the transport**. See [Sync & Sharing](sync.md) for the full model.
 
 ```bash
 substrate sync [options]
@@ -428,11 +434,13 @@ substrate sync [options]
 - `-v, --verbose` — Show detailed output
 - `--json` — Output as JSON
 
-Running `substrate sync` without a subcommand does bidirectional sync (push then pull).
+Running `substrate sync` without a subcommand does both directions (pull then push), mirroring a git workflow: absorb others' changes first, then write the merged state back to the files.
 
 ### sync status
 
-Show sync status.
+Show whether the `.substrate/` files are present and how many items are pending
+(changed in the local cache but not yet written to the files). There is no
+online/offline concept.
 
 ```bash
 substrate sync status [options]
@@ -440,17 +448,23 @@ substrate sync status [options]
 
 ### sync push
 
-Push local changes to remote.
+Serialize the local cache into the `.substrate/` files (shared items to
+`context.jsonl`/`links.jsonl`, private items to `context.priv.jsonl`/`links.priv.jsonl`).
+Commit and share the shared files with git afterwards:
 
 ```bash
 substrate sync push [options]
+git add .substrate && git commit -m "Update context" && git push
 ```
 
 ### sync pull
 
-Pull remote changes to local.
+Read the `.substrate/` files back into the local cache (run after `git pull`). Uses
+last-write-wins by each item's `updated_at`; tombstones (deleted items) propagate as
+local soft-deletes. On a fresh clone it bootstraps a workspace from `workspace.json`.
 
 ```bash
+git pull
 substrate sync pull [options]
 ```
 
@@ -470,7 +484,7 @@ substrate project id [options]
 
 ### project info
 
-Show project details and sync status.
+Show project details, including whether the `.substrate/` files are present locally.
 
 ```bash
 substrate project info [options]
@@ -478,10 +492,13 @@ substrate project info [options]
 
 ### project pin
 
-Pin directory to an existing project.
+Pin the current directory to an existing project ID. This just records the pin in
+`.substrate/config.json` — it does not contact any server. Run `substrate sync pull`
+afterwards to load the project's context into the local cache.
 
 ```bash
 substrate project pin <id> [options]
+substrate sync pull
 ```
 
 **Arguments:**
@@ -592,70 +609,6 @@ substrate mcp status
 | `substrate://workspace/current`   | Current workspace info            |
 | `substrate://context/constraints` | All constraints (immutable facts) |
 | `substrate://session/active`      | Active session info and stats     |
-
----
-
-## auth
-
-Manage authentication.
-
-### auth init
-
-Initialize authentication (primary method).
-
-```bash
-substrate auth init [options]
-```
-
-**Options:**
-
-- `--force` — Overwrite existing credentials
-- `--json` — Output as JSON
-
-Creates an anonymous account and API key, saved to `~/.substrate/auth.json`.
-
-### auth status
-
-Show current auth status.
-
-```bash
-substrate auth status [options]
-```
-
-### auth logout
-
-Clear local credentials.
-
-```bash
-substrate auth logout [options]
-```
-
-### auth keys
-
-Manage API keys.
-
-```bash
-substrate auth keys list          # List your API keys
-substrate auth keys create <name> # Create new key
-substrate auth keys revoke <id>   # Revoke a key
-```
-
-### auth token
-
-Manage workspace tokens (for CI/agents).
-
-```bash
-substrate auth token create <workspace> <name> [options]
-substrate auth token list <workspace>
-substrate auth token revoke <id>
-```
-
-**Options for create:**
-
-- `-s, --scope <scope>` — `read` or `read_write` (default: `read_write`)
-- `-e, --expires <days>` — Expiration in days
-
-See [Authentication](authentication.md) for details.
 
 ---
 
@@ -885,14 +838,6 @@ substrate dump --flat --no-links
 
 ---
 
-## Environment Variables
-
-| Variable            | Description    | Default                 |
-| ------------------- | -------------- | ----------------------- |
-| `SUBSTRATE_API_URL` | API server URL | `http://localhost:3000` |
-
----
-
 ## Exit Codes
 
 | Code | Meaning |
@@ -904,10 +849,14 @@ substrate dump --flat --no-links
 
 ## Configuration Files
 
-| File                       | Purpose                           |
-| -------------------------- | --------------------------------- |
-| `~/.substrate/auth.json`   | Authentication credentials        |
-| `~/.substrate/config.json` | Global configuration              |
-| `~/.substrate/log`         | Global audit log                  |
-| `.substrate/config.json`   | Project-level config (project ID) |
-| `.substrate/log`           | Project-level audit log           |
+| File                            | Purpose                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| `~/.substrate/local.db`         | Local cache (rebuildable; never committed)             |
+| `~/.substrate/config.json`      | Global configuration                                   |
+| `~/.substrate/log`              | Global audit log                                       |
+| `.substrate/config.json`        | Project-level config (project ID pin)                  |
+| `.substrate/workspace.json`     | Workspace manifest (project_id, name, description)     |
+| `.substrate/context.jsonl`      | Shared context items (committed; source of truth)      |
+| `.substrate/links.jsonl`        | Shared links (committed)                               |
+| `.substrate/context.priv.jsonl` | Personal context items (gitignored via `*.priv.jsonl`) |
+| `.substrate/links.priv.jsonl`   | Personal links (gitignored)                            |

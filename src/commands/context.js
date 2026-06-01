@@ -28,10 +28,8 @@
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
-import { api } from '../lib/api.js';
 import { success, error, info, warn, formatJson, contextItem, shortId } from '../lib/output.js';
 import { checkDuplicate } from '../lib/similarity.js';
-import ora from 'ora';
 
 /**
  * Valid context type values.
@@ -89,6 +87,7 @@ contextCommand
   .option('--tag <tags>', 'Comma-separated tags')
   .option('-s, --scope <scope>', 'Scope path', '*')
   .option('-f, --force', 'Skip duplicate check')
+  .option('--private', 'Keep personal (written to gitignored .substrate.priv, never committed)')
   .option('--json', 'Output as JSON')
   .action(async (content, options) => {
     const db = getDb();
@@ -142,8 +141,8 @@ contextCommand
 
     db.prepare(
       `
-      INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, private, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
     ).run(
       id,
@@ -153,32 +152,10 @@ contextCommand
       JSON.stringify(tags),
       options.scope,
       '{}',
+      options.private ? 1 : 0,
       now,
       now
     );
-
-    // Try to sync to remote
-    const spinner = options.json ? null : ora('Saving...').start();
-    try {
-      const result = await api.addContext(
-        workspace.remote_id || workspace.name,
-        options.type,
-        content,
-        tags,
-        options.scope
-      );
-      if (result.context?.id) {
-        db.prepare('UPDATE context SET remote_id = ?, synced_at = ? WHERE id = ?').run(
-          result.context.id,
-          now,
-          id
-        );
-      }
-      spinner?.stop();
-    } catch (err) {
-      spinner?.stop();
-      // Offline is fine
-    }
 
     const ctx = db.prepare('SELECT * FROM context WHERE id = ?').get(id);
     ctx.tags = JSON.parse(ctx.tags);
@@ -186,7 +163,7 @@ contextCommand
     if (options.json) {
       console.log(formatJson({ context: ctx, created: true }));
     } else {
-      success(`Added ${options.type}`);
+      success(`Added ${options.type}${options.private ? ' (private)' : ''}`);
       contextItem(ctx);
     }
   });

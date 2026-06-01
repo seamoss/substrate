@@ -1,8 +1,9 @@
 /**
  * Local SQLite database management for offline-first context storage.
  *
- * This module provides the local database layer for Substrate. All context
- * is stored locally first (offline-first), then synced to the remote server.
+ * This module provides the local database layer for Substrate. The database is
+ * a rebuildable cache; the durable, shared source of truth is the committed
+ * `.substrate/` files (see {@link module:lib/files}), synced via git.
  *
  * ## Database Schema
  *
@@ -32,10 +33,10 @@ let db = null;
  * @property {string} name - Workspace display name
  * @property {string|null} description - Optional description
  * @property {string} project_id - Unique project identifier for pinning
- * @property {string|null} remote_id - ID on remote server (after sync)
+ * @property {string|null} remote_id - Deprecated; unused since git-backed sync
  * @property {string} created_at - ISO 8601 timestamp
  * @property {string} updated_at - ISO 8601 timestamp
- * @property {string|null} synced_at - Last sync timestamp
+ * @property {string|null} synced_at - Last time this row was reconciled with the .substrate files
  * @property {string|null} deleted_at - Soft delete timestamp
  */
 
@@ -59,10 +60,11 @@ let db = null;
  * @property {string} tags - JSON-encoded array of tags
  * @property {string} scope - Scope path pattern (default: '*')
  * @property {string} meta - JSON-encoded metadata object
- * @property {string|null} remote_id - ID on remote server (after sync)
+ * @property {number} private - 0 = shared (.substrate/), 1 = personal (.substrate.priv/)
+ * @property {string|null} remote_id - Deprecated; unused since git-backed sync
  * @property {string} created_at - ISO 8601 timestamp
  * @property {string} updated_at - ISO 8601 timestamp
- * @property {string|null} synced_at - Last sync timestamp
+ * @property {string|null} synced_at - Last time this row was reconciled with the .substrate files
  * @property {string|null} deleted_at - Soft delete timestamp
  */
 
@@ -139,6 +141,7 @@ export function getDb() {
       tags TEXT DEFAULT '[]',
       scope TEXT DEFAULT '*',
       meta TEXT DEFAULT '{}',
+      private INTEGER NOT NULL DEFAULT 0,
       remote_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -202,6 +205,12 @@ function runMigrations(db) {
   const hasDeletedAt = contextInfo.some(col => col.name === 'deleted_at');
   if (!hasDeletedAt) {
     db.exec('ALTER TABLE context ADD COLUMN deleted_at TEXT');
+  }
+
+  // Check and add private flag to context if missing (shared vs personal store)
+  const hasPrivate = contextInfo.some(col => col.name === 'private');
+  if (!hasPrivate) {
+    db.exec('ALTER TABLE context ADD COLUMN private INTEGER NOT NULL DEFAULT 0');
   }
 
   // Check and add deleted_at to workspaces if missing

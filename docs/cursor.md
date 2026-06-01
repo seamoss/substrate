@@ -15,7 +15,6 @@ Cursor uses a rules system to provide context to its AI. You can configure Subst
 
 ```bash
 npm install -g substrate-cli
-substrate auth init
 ```
 
 ### 2. Initialize Your Project
@@ -24,6 +23,9 @@ substrate auth init
 cd your-project
 substrate init your-project
 ```
+
+There are no accounts or API keys — Substrate stores context in committed
+`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
 
 ### 3. Create Cursor Rules
 
@@ -182,8 +184,8 @@ Cursor should run `substrate brief --format agent` and show you the stored conte
 ### Context not loading
 
 ```bash
-substrate auth status    # Check auth
 substrate status         # Check workspace
+substrate sync pull      # Load the latest .substrate/ files into the cache
 ```
 
 ## Resources

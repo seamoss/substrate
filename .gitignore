@@ -1,2 +1,5 @@
-/.substrate
+# The shared .substrate/ directory is the collective source of truth and IS committed.
+# Personal context lives in *.priv.jsonl files inside it and must never be committed.
+# Substrate's cache lives at ~/.substrate/ (outside the repo) and is not tracked.
+*.priv.jsonl
 /node_modules

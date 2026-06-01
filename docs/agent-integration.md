@@ -518,8 +518,8 @@ substrate status
 # Verify context exists
 substrate brief --compact
 
-# Check authentication
-substrate auth status
+# Make sure the latest context is loaded into the cache
+substrate sync pull
 ```
 
 ### MCP server not responding
@@ -550,14 +550,19 @@ substrate add "API responses must be JSON" --yes
 
 ### Context not syncing across team
 
+Substrate shares context through committed `.substrate/` files — git is the
+transport, so make sure everyone is pulling and pushing through git:
+
 ```bash
-# Pull latest from remote
+# Load teammates' changes (after git pull)
+git pull
 substrate sync pull
 
-# Push your changes
+# Write your changes to the files, then commit with git
 substrate sync push
+git add .substrate && git commit -m "Update context" && git push
 
-# Check sync status
+# Check what's present and pending
 substrate sync status
 ```
 

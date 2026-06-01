@@ -2,7 +2,6 @@ import { Command } from 'commander';
 import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
-import { api } from '../lib/api.js';
 import { getProjectId } from '../lib/config.js';
 import {
   success,
@@ -43,6 +42,7 @@ export const addCommand = new Command('add')
   .option('-s, --scope <scope>', 'Scope path', '*')
   .option('-f, --force', 'Skip duplicate check')
   .option('-y, --yes', 'Non-interactive mode (skip duplicate check, same as --force)')
+  .option('--private', 'Keep personal (written to gitignored .substrate.priv, never committed)')
   .option('--json', 'Output as JSON')
   .action(async (content, options) => {
     // --yes is an alias for --force (for agent workflows)
@@ -97,8 +97,8 @@ export const addCommand = new Command('add')
 
     db.prepare(
       `
-      INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, private, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
     ).run(
       id,
@@ -108,29 +108,10 @@ export const addCommand = new Command('add')
       JSON.stringify(tags),
       options.scope,
       '{}',
+      options.private ? 1 : 0,
       now,
       now
     );
-
-    // Try to sync to remote
-    try {
-      const result = await api.addContext(
-        workspace.remote_id || workspace.name,
-        options.type,
-        content,
-        tags,
-        options.scope
-      );
-      if (result.context?.id) {
-        db.prepare('UPDATE context SET remote_id = ?, synced_at = ? WHERE id = ?').run(
-          result.context.id,
-          now,
-          id
-        );
-      }
-    } catch (err) {
-      // Offline is fine
-    }
 
     const ctx = db.prepare('SELECT * FROM context WHERE id = ?').get(id);
     ctx.tags = JSON.parse(ctx.tags);
@@ -138,7 +119,7 @@ export const addCommand = new Command('add')
     if (options.json) {
       console.log(formatJson({ context: ctx, created: true }));
     } else {
-      success(`Added ${options.type}`);
+      success(`Added ${options.type}${options.private ? ' (private)' : ''}`);
       contextItem(ctx);
     }
   });

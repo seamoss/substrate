@@ -26,19 +26,8 @@ npm link
 
 This installs the `substrate` command globally.
 
-### Authenticate
-
-```bash
-substrate auth init
-```
-
-This creates an anonymous account and saves your API key to `~/.substrate/auth.json`.
-
-Check your auth status:
-
-```bash
-substrate auth status
-```
+There are no accounts to create — Substrate stores context in committed
+`.substrate/` files and uses git to share it. See [Sync & Sharing](sync.md).
 
 ## Create Your First Workspace
 
@@ -53,8 +42,8 @@ This:
 
 1. Creates a workspace named "myproject"
 2. Generates a unique project ID (UUID)
-3. Mounts the current directory to the workspace
-4. Saves config to `.substrate/config.json`
+3. Saves config to `.substrate/config.json`
+4. Writes the initial `.substrate/` files, ready to commit with git
 
 ### Add Context
 
@@ -140,16 +129,21 @@ substrate related abc123 --depth 2
 
 ## Syncing Context
 
-### Push Local Changes
+Substrate stores context in committed `.substrate/` files and shares it through
+git — there's no server. See [Sync & Sharing](sync.md) for the full model.
+
+### Write Local Changes to Files
 
 ```bash
-substrate sync push
+substrate sync push          # serialize the local cache into .substrate/ files
+git add .substrate && git commit -m "Update context" && git push
 ```
 
-### Pull Remote Changes
+### Load Teammates' Changes
 
 ```bash
-substrate sync pull
+git pull
+substrate sync pull          # reconcile .substrate/ files into the local cache
 ```
 
 ### Check Sync Status
@@ -158,11 +152,22 @@ substrate sync pull
 substrate sync status
 ```
 
+### Personal vs shared context
+
+Anything you add is **shared** (committed to `.substrate/context.jsonl`) by default.
+Add `--private` to keep an item local to you — it's written to the sibling
+`.substrate/context.priv.jsonl`, which is gitignored and never committed:
+
+```bash
+substrate add "My local DB runs on port 5544" --type note --private
+```
+
 ## Team Collaboration
 
 ### Share Your Project
 
-Your project ID is in `.substrate/config.json`. Share it with teammates:
+Commit the `.substrate/` directory; that's all a teammate needs. Your project ID
+is in `.substrate/config.json`:
 
 ```bash
 substrate project id
@@ -172,9 +177,8 @@ substrate project id
 ### Join an Existing Project
 
 ```bash
-cd ~/projects/shared-project
-substrate project pin 550e8400-e29b-41d4-a716-446655440000
-substrate sync pull
+git clone <repo-url> && cd <repo>
+substrate sync pull          # bootstraps a workspace from the committed files
 ```
 
 ## Using with AI Agents
@@ -245,5 +249,5 @@ substrate dump -o docs/CONTEXT.md
 
 - [CLI Reference](cli-reference.md) — Complete command documentation
 - [Claude Code Setup](claude-code.md) — Using Substrate with Claude Code
-- [Authentication](authentication.md) — Managing API keys and tokens
+- [Sync & Sharing](sync.md) — How git-backed sync works
 - [Agent Integration](agent-integration.md) — MCP server setup

@@ -12,7 +12,6 @@ Windsurf uses a rules system similar to Cursor. Rules are stored in `.windsurf/r
 
 ```bash
 npm install -g substrate-cli
-substrate auth init
 ```
 
 ### 2. Initialize Your Project
@@ -21,6 +20,9 @@ substrate auth init
 cd your-project
 substrate init your-project
 ```
+
+There are no accounts or API keys — Substrate stores context in committed
+`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
 
 ### 3. Create Windsurf Rules
 
@@ -203,8 +205,8 @@ Cascade should run `substrate brief --format agent` and summarize the context.
 ### Context not loading
 
 ```bash
-substrate auth status    # Check authentication
 substrate status         # Check workspace mount
+substrate sync pull      # Load the latest .substrate/ files into the cache
 ````
 
 ### Rules truncated

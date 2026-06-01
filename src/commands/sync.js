@@ -1,6 +1,12 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
-import { getSyncStatus, pushChanges, pullChanges, syncWorkspace } from '../lib/sync.js';
+import {
+  getSyncStatus,
+  pushChanges,
+  pullChanges,
+  syncWorkspace,
+  bootstrapWorkspaceFromFiles
+} from '../lib/sync.js';
 import { success, error, info, dim, heading, formatJson } from '../lib/output.js';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -20,32 +26,34 @@ function findWorkspaceForCwd() {
   return null;
 }
 
+function resolveWorkspace(options) {
+  const db = getDb();
+  if (options.workspace) {
+    return db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
+  }
+  // On a fresh clone there's no mount yet -- bootstrap from committed .substrate files.
+  return findWorkspaceForCwd() || bootstrapWorkspaceFromFiles(db, process.cwd());
+}
+
 export const syncCommand = new Command('sync')
-  .description('Sync local context with remote server')
+  .description('Sync context with the committed .substrate files (git is the transport)')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    let workspace;
-    const db = getDb();
-
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-    } else {
-      workspace = findWorkspaceForCwd();
-    }
+    const workspace = resolveWorkspace(options);
 
     if (!workspace) {
       error('No workspace found. Specify with -w or run from a mounted directory.');
       return;
     }
 
-    const spinner = ora('Syncing...').start();
+    const spinner = options.json ? null : ora('Syncing...').start();
 
     try {
       const result = await syncWorkspace(workspace.id, { verbose: options.verbose });
 
-      spinner.stop();
+      spinner?.stop();
 
       if (options.json) {
         console.log(formatJson(result));
@@ -56,36 +64,27 @@ export const syncCommand = new Command('sync')
       heading(`Sync Complete: ${workspace.name}`);
       console.log();
 
-      if (result.push.error) {
-        error(`Push failed: ${result.push.error}`);
-      } else {
-        if (result.push.pushed > 0) {
-          success(`Pushed ${result.push.pushed} item(s)`);
-        }
-        if (result.push.failed > 0) {
-          error(`Failed to push ${result.push.failed} item(s)`);
-        }
+      // Pull (ignore the benign "no files yet" case on first sync)
+      if (result.pull?.error && !/No \.substrate files/.test(result.pull.error)) {
+        error(`Pull failed: ${result.pull.error}`);
+      } else if (result.pull) {
+        if (result.pull.pulled > 0) success(`Pulled ${result.pull.pulled} new item(s)`);
+        if (result.pull.updated > 0) info(`Updated ${result.pull.updated} item(s)`);
+        if (result.pull.links > 0) info(`Added ${result.pull.links} link(s)`);
       }
 
-      if (result.pull) {
-        if (result.pull.error) {
-          error(`Pull failed: ${result.pull.error}`);
-        } else {
-          if (result.pull.pulled > 0) {
-            success(`Pulled ${result.pull.pulled} new item(s)`);
-          }
-          if (result.pull.updated > 0) {
-            info(`Updated ${result.pull.updated} item(s)`);
-          }
-          if (result.pull.skipped > 0) {
-            dim(`  Skipped ${result.pull.skipped} unchanged item(s)`);
-          }
-        }
+      if (result.push?.error) {
+        error(`Write failed: ${result.push.error}`);
+      } else if (result.push) {
+        success(`Wrote ${result.push.context} item(s) and ${result.push.links} link(s)`);
+        dim(`  to ${result.push.root}/.substrate/`);
+        console.log();
+        dim('  Commit them: git add .substrate && git commit -m "Update context"');
       }
 
       console.log();
     } catch (err) {
-      spinner.stop();
+      spinner?.stop();
       error(`Sync failed: ${err.message}`);
     }
   });
@@ -97,14 +96,7 @@ syncCommand
   .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    let workspace;
-    const db = getDb();
-
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-    } else {
-      workspace = findWorkspaceForCwd();
-    }
+    const workspace = resolveWorkspace(options);
 
     if (!workspace) {
       error('No workspace found. Specify with -w or run from a mounted directory.');
@@ -122,64 +114,56 @@ syncCommand
     heading(`Sync Status: ${workspace.name}`);
     console.log();
 
-    // Connectivity
-    if (status.online) {
-      console.log(`  ${chalk.green('●')} Remote: ${chalk.green('connected')}`);
+    if (status.filesPresent) {
+      console.log(
+        `  ${chalk.green('●')} Files: ${chalk.green('present')} (${status.root}/.substrate/)`
+      );
     } else {
-      console.log(`  ${chalk.red('●')} Remote: ${chalk.red('offline')}`);
+      console.log(`  ${chalk.yellow('●')} Files: ${chalk.yellow('not written yet')}`);
     }
 
-    // Last sync
     if (status.lastSync) {
-      dim(`  Last sync: ${new Date(status.lastSync).toLocaleString()}`);
+      dim(`  Last write: ${new Date(status.lastSync).toLocaleString()}`);
     } else {
-      dim(`  Last sync: never`);
+      dim(`  Last write: never`);
     }
 
     console.log();
 
-    // Pending changes
     const pendingContext = status.pending.push.context;
     const pendingLinks = status.pending.push.links;
 
     if (pendingContext === 0 && pendingLinks === 0) {
-      success('All changes synced');
+      success('All changes written to .substrate files');
     } else {
-      info(`Pending push: ${pendingContext} context item(s), ${pendingLinks} link(s)`);
+      info(`Pending: ${pendingContext} context item(s), ${pendingLinks} link(s)`);
       dim('  Run: substrate sync push');
     }
 
     console.log();
   });
 
-// substrate sync push
+// substrate sync push -- serialize local DB into .substrate files
 syncCommand
   .command('push')
-  .description('Push local changes to remote')
+  .description('Write local context to the .substrate files (then commit with git)')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    let workspace;
-    const db = getDb();
-
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-    } else {
-      workspace = findWorkspaceForCwd();
-    }
+    const workspace = resolveWorkspace(options);
 
     if (!workspace) {
       error('No workspace found. Specify with -w or run from a mounted directory.');
       return;
     }
 
-    const spinner = ora('Pushing changes...').start();
+    const spinner = options.json ? null : ora('Writing .substrate files...').start();
 
     try {
       const result = await pushChanges(workspace.id, { verbose: options.verbose });
 
-      spinner.stop();
+      spinner?.stop();
 
       if (options.json) {
         console.log(formatJson(result));
@@ -193,52 +177,38 @@ syncCommand
         return;
       }
 
-      if (result.pushed > 0) {
-        success(`Pushed ${result.pushed} item(s) to remote`);
-      } else {
-        info('Nothing to push');
-      }
-
-      if (result.failed > 0) {
-        error(`Failed to push ${result.failed} item(s)`);
-        result.errors.forEach(e => dim(`  ${e.id}: ${e.error}`));
-      }
-
+      success(`Wrote ${result.context} item(s) and ${result.links} link(s)`);
+      dim(`  to ${result.root}/.substrate/`);
+      console.log();
+      dim('  Next: git add .substrate && git commit -m "Update context" && git push');
       console.log();
     } catch (err) {
-      spinner.stop();
-      error(`Push failed: ${err.message}`);
+      spinner?.stop();
+      error(`Write failed: ${err.message}`);
     }
   });
 
-// substrate sync pull
+// substrate sync pull -- reconcile .substrate files into local DB
 syncCommand
   .command('pull')
-  .description('Pull remote changes to local')
+  .description('Read the .substrate files into the local cache (after a git pull)')
   .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    let workspace;
-    const db = getDb();
-
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-    } else {
-      workspace = findWorkspaceForCwd();
-    }
+    const workspace = resolveWorkspace(options);
 
     if (!workspace) {
       error('No workspace found. Specify with -w or run from a mounted directory.');
       return;
     }
 
-    const spinner = ora('Pulling changes...').start();
+    const spinner = options.json ? null : ora('Reading .substrate files...').start();
 
     try {
       const result = await pullChanges(workspace.id, { verbose: options.verbose });
 
-      spinner.stop();
+      spinner?.stop();
 
       if (options.json) {
         console.log(formatJson(result));
@@ -252,19 +222,16 @@ syncCommand
         return;
       }
 
-      if (result.pulled > 0) {
-        success(`Pulled ${result.pulled} new item(s)`);
-      }
-      if (result.updated > 0) {
-        info(`Updated ${result.updated} item(s)`);
-      }
-      if (result.pulled === 0 && result.updated === 0) {
+      if (result.pulled > 0) success(`Pulled ${result.pulled} new item(s)`);
+      if (result.updated > 0) info(`Updated ${result.updated} item(s)`);
+      if (result.links > 0) info(`Added ${result.links} link(s)`);
+      if (result.pulled === 0 && result.updated === 0 && result.links === 0) {
         info('Already up to date');
       }
 
       console.log();
     } catch (err) {
-      spinner.stop();
+      spinner?.stop();
       error(`Pull failed: ${err.message}`);
     }
   });
