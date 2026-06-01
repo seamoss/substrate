@@ -1,195 +1,53 @@
-# Using Substrate with Cursor
+# Substrate + Cursor
 
-This guide explains how to integrate Substrate with [Cursor](https://cursor.com), the AI-powered code editor.
-
-## Overview
-
-Cursor uses a rules system to provide context to its AI. You can configure Substrate integration using either:
-
-- **Project Rules** (`.cursor/rules/*.mdc`) — Recommended, version-controlled
-- **Legacy `.cursorrules`** — Single file in project root
+Cursor auto-applies Project Rules from `.cursor/rules/*.mdc`. Add the Substrate protocol
+there so Cursor's agent loads and captures context.
 
 ## Setup
 
-### 1. Install Substrate
+1. Install and initialize (once per repo):
+   ```bash
+   npm install -g substrate-cli
+   substrate init your-project      # already set up? git clone + substrate sync pull
+   ```
+2. Create `.cursor/rules/substrate.mdc` (or paste the body into a legacy `.cursorrules`):
 
-```bash
-npm install -g substrate-cli
-```
+   ```markdown
+   ---
+   description: Substrate context protocol
+   alwaysApply: true
+   ---
 
-### 2. Initialize Your Project
+   ## Substrate context
 
-```bash
-cd your-project
-substrate init your-project
-```
+   This project uses Substrate for persistent, shared context — decisions, constraints,
+   and conventions stored in committed `.substrate/` files (git is the transport; no
+   server, no accounts).
 
-There are no accounts or API keys — Substrate stores context in committed
-`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
+   - **At the start of a session**, load and follow context: `substrate brief --format agent`
+   - **When the work produces something durable** (a constraint, decision, or convention),
+     capture it: `substrate add "<statement>" --type <constraint|decision|note|task|entity|runbook|snippet> [--tag <tag>]`.
+     Add `--private` for personal/machine-specific notes (kept out of git).
+   - **After capturing**, share it: `substrate sync push`, then
+     `git add .substrate && git commit -m "Update context" && git push`.
+   - On a fresh clone, run `substrate sync pull` first.
+   ```
 
-### 3. Create Cursor Rules
+For path-scoped rules, give the rule a glob (e.g. `src/api/**`) and capture matching
+context with `--scope "src/api/*"`.
 
-Create `.cursor/rules/substrate.mdc` in your project:
+## Verify
 
-````markdown
----
-description: Substrate context management protocol
-globs:
-alwaysApply: true
----
-
-# Substrate Context Protocol
-
-This project uses Substrate for persistent context management.
-
-## On Session Start
-
-Run this command first to load project context:
-
-```bash
-substrate brief --format agent
-```
-````
-
-Internalize all constraints and decisions before proceeding.
-
-## During Work
-
-Capture discoveries immediately:
-
-| Discovery             | Command                                 |
-| --------------------- | --------------------------------------- |
-| Hard rule             | `substrate add "..." --type constraint` |
-| Architecture decision | `substrate add "..." --type decision`   |
-| Important context     | `substrate add "..." --type note`       |
-| Related concepts      | `substrate link add <id1> <id2>`        |
-
-Use tags: `--tag api`, `--tag auth`, `--tag database`
-
-## Quick Reference
-
-```bash
-substrate brief --format agent      # Load context (START HERE)
-substrate brief --format claudemd  # Output for CLAUDE.md injection
-substrate brief --budget medium    # Token-budgeted output (~8K tokens)
-substrate add "..." -t TYPE        # Save context
-substrate ls                       # List recent
-substrate link add X Y             # Link items
-substrate digest                   # Session summary
-substrate recall "query"           # Search history
-```
-
-````
-
-### Alternative: Legacy .cursorrules
-
-If you prefer a single file, create `.cursorrules` in your project root:
-
-```markdown
-# Substrate Context Protocol
-
-This project uses Substrate for persistent context.
-
-## On Session Start
-Run: substrate brief --format agent
-
-## Capture Protocol
-- Constraints: substrate add "..." --type constraint
-- Decisions: substrate add "..." --type decision
-- Notes: substrate add "..." --type note
-
-## Commands
-- substrate brief --format agent (load context first)
-- substrate add "..." -t TYPE (save context)
-- substrate ls (list recent)
-- substrate digest (session summary)
-````
-
-## How It Works
-
-1. Cursor reads the rules file when starting a session
-2. The AI sees instructions to run `substrate brief --format agent`
-3. Context is loaded and the AI follows stored constraints/decisions
-4. During work, the AI captures new context with `substrate add`
-
-## Tips
-
-### Use Glob Patterns for Scoped Rules
-
-Create rules that only apply to specific files:
-
-````markdown
----
-description: API-specific Substrate rules
-globs:
-  - src/api/**
-  - src/routes/**
----
-
-When working on API files, always check for API-related context:
-
-```bash
-substrate ls --tag api
-```
-````
-
-```
-
-### Combine with Other Rules
-
-You can have multiple rule files. Substrate rules work alongside your coding style rules:
-
-```
-
-.cursor/rules/
-├── substrate.mdc # Context management
-├── typescript.mdc # TypeScript conventions
-└── testing.mdc # Testing guidelines
-
-````
-
-### Add Project-Specific Tags
-
-Define your tag taxonomy in the rules:
-
-```markdown
-## Tags for This Project
-
-Always use these tags when adding context:
-- `api` — REST endpoints, request/response
-- `auth` — Authentication, authorization
-- `db` — Database, queries, migrations
-- `ui` — Components, styling
-- `perf` — Performance considerations
-````
-
-## Verifying It Works
-
-Start a new Cursor session and ask:
-
-```
-What constraints and decisions exist for this project?
-```
-
-Cursor should run `substrate brief --format agent` and show you the stored context.
+Ask in chat: _"What constraints and decisions are stored for this project?"_ Cursor should
+run `substrate brief --format agent` and report them.
 
 ## Troubleshooting
 
-### Cursor isn't following the rules
+- **Cursor isn't following the rules** — confirm `.cursor/rules/substrate.mdc` exists with
+  `alwaysApply: true`, and `substrate --version` works.
+- **No context** — `substrate status` and `substrate sync status`.
+- **Team out of sync** — `git pull && substrate sync pull`; after capturing, `substrate sync push` + commit.
 
-1. Check the file is in `.cursor/rules/` with `.mdc` extension
-2. Verify `alwaysApply: true` is set in frontmatter
-3. Restart Cursor to reload rules
+## See also
 
-### Context not loading
-
-```bash
-substrate status         # Check the context store
-substrate sync pull      # Load the latest .substrate/ files into the cache
-```
-
-## Resources
-
-- [Cursor Rules Documentation](https://docs.cursor.com/context/rules-for-ai)
-- [Awesome Cursor Rules](https://github.com/PatrickJS/awesome-cursorrules)
-- [Substrate CLI Reference](cli-reference.md)
+[CLI Reference](cli-reference.md) · [Sync & Sharing](sync.md) · [Agent Integration](agent-integration.md)

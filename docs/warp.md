@@ -1,247 +1,55 @@
-# Using Substrate with Warp
+# Substrate + Warp
 
-This guide explains how to integrate Substrate with [Warp](https://warp.dev), the AI-powered terminal.
-
-## Overview
-
-Warp is an AI-native terminal with built-in assistants. While it doesn't have file-based custom instructions like code editors, you can integrate Substrate through:
-
-- **AI Knowledge settings** — Configure AI behavior
-- **Workflows** — Save common command sequences
-- **Natural language commands** — Ask Warp AI to use Substrate
+Warp is a terminal, so there's no rules file — you drive Substrate from the command line
+(or Warp AI), and optionally save the common commands as Warp Workflows.
 
 ## Setup
 
-### 1. Install Substrate
-
-```bash
-npm install -g substrate-cli
-```
-
-### 2. Initialize Your Project
-
-```bash
-cd your-project
-substrate init your-project
-```
-
-There are no accounts or API keys — Substrate stores context in committed
-`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
-
-### 3. Configure Warp AI (Optional)
-
-In Warp Settings → AI:
-
-- Enable the AI features you want
-- Configure your preferred model
-
-## Using Substrate with Warp AI
-
-### Loading Context
-
-When starting work, ask Warp's AI:
-
-```
-Load project context with substrate brief --format agent
-```
-
-Or run directly:
-
-```bash
-substrate brief --format agent
-```
-
-### Capturing Context
-
-Ask Warp AI to help capture context:
-
-```
-Add a constraint that all API responses must include request IDs using substrate
-```
-
-Warp will suggest:
-
-```bash
-substrate add "All API responses must include request IDs" --type constraint --tag api
-```
-
-### Natural Language Queries
-
-Warp AI understands natural language. Ask it:
-
-```
-What substrate commands can I use to see recent decisions?
-```
-
-```
-Show me how to link two substrate context items
-```
-
-## Creating Workflows
-
-Save common Substrate operations as Warp Workflows:
-
-### Context Brief Workflow
-
-Create a workflow named "substrate-context":
-
-```bash
-substrate brief --format agent
-```
-
-Other useful format options:
-
-```bash
-substrate brief --format claudemd  # Output for CLAUDE.md injection
-substrate brief --budget medium    # Token-budgeted output (~8K tokens)
-```
-
-Then run it with: `substrate-context`
-
-### Quick Add Workflows
-
-Create workflows for common captures:
-
-**Add Constraint** (`sub-constraint`):
-
-```bash
-substrate add "${1:constraint text}" --type constraint --tag ${2:tag}
-```
-
-**Add Decision** (`sub-decision`):
-
-```bash
-substrate add "${1:decision text}" --type decision --tag ${2:tag}
-```
-
-**Session Summary** (`sub-digest`):
-
-```bash
-substrate digest --hours ${1:8}
-```
-
-## Recommended Workflow
-
-### Session Start
-
-1. Navigate to your project
-2. Run `substrate brief --format agent` or your workflow
-3. Review constraints and decisions
-
-### During Work
-
-Use natural language with Warp AI:
-
-```
-I just decided to use Redis for caching. Save this as a substrate decision with tag caching.
-```
-
-Warp will run:
-
-```bash
-substrate add "Using Redis for caching" --type decision --tag caching
-```
-
-### Session End
-
-```
-Show me what substrate context I added today
-```
-
-Warp will run:
-
-```bash
-substrate digest --hours 8
-```
-
-## Tips
-
-### Use Warp's Command Suggestions
-
-Start typing `substrate` and Warp will show command completions based on your history.
-
-### Combine with Warp Blocks
-
-Warp organizes terminal output into blocks. After running `substrate brief --format agent`, you can:
-
-- Copy the block output
-- Share it with teammates
-- Reference it in later commands
-
-### AI Command Mode
-
-In Warp, press `Ctrl+Shift+R` (or `Cmd+Shift+R` on Mac) to enter AI command mode. Then type:
-
-```
-list all substrate constraints tagged with api
-```
-
-Warp translates this to:
-
-```bash
-substrate ls --type constraint --tag api
-```
-
-## Example Session
-
-```bash
-# Start of session - load context
-$ substrate brief --format agent
-## Project Context: myapp
-
-### Constraints
-- All API responses must be JSON
-- Rate limit: 100 req/min per user
-
-### Decisions
-- Using PostgreSQL for persistence
-
-# During work - capture a new constraint
-$ substrate add "Auth tokens expire after 24h" --type constraint --tag auth
-✓ Added constraint
-b4dc3d55 [constraint] Auth tokens expire after 24h (auth)
-
-# Link related items
-$ substrate ls
-b4dc3d55 [constraint] Auth tokens expire after 24h (auth)
-a1b2c3d4 [decision] Using JWT for stateless auth (auth)
-
-$ substrate link add b4dc3d55 a1b2c3d4 --relation implements
-✓ Linked b4dc3d55 → a1b2c3d4 (implements)
-
-# End of session - review
-$ substrate digest
-Added in last 8 hours:
-- [constraint] Auth tokens expire after 24h
-```
+1. Install and initialize (once per repo):
+   ```bash
+   npm install -g substrate-cli
+   substrate init your-project      # already set up? git clone + substrate sync pull
+   ```
+
+## The protocol
+
+Same flow as every other harness — just run it in the terminal (Warp AI will also suggest
+these from natural language):
+
+- **At the start of a session**, load and follow context:
+  ```bash
+  substrate brief --format agent
+  ```
+- **When the work produces something durable** (a constraint, decision, or convention),
+  capture it — add `--private` for personal/machine-specific notes (kept out of git):
+  ```bash
+  substrate add "<statement>" --type <constraint|decision|note|task|entity|runbook|snippet> [--tag <tag>]
+  ```
+- **After capturing**, share it:
+  ```bash
+  substrate sync push
+  git add .substrate && git commit -m "Update context" && git push
+  ```
+- On a fresh clone, run `substrate sync pull` first.
+
+## Optional: Warp Workflows
+
+Save the two you'll use most as Workflows for one-keystroke access:
+
+- **substrate-context** → `substrate brief --format agent`
+- **substrate-add** → `substrate add "{{content}}" --type {{type}}` (parameterized)
+
+## Verify
+
+Run `substrate brief --format agent` (or ask Warp AI to). You should see the stored
+constraints and decisions.
 
 ## Troubleshooting
 
-### Substrate command not found
+- **`substrate: command not found`** — `npm install -g substrate-cli`, then reopen Warp.
+- **No context** — `substrate status` and `substrate sync status`.
+- **Team out of sync** — `git pull && substrate sync pull`; after capturing, `substrate sync push` + commit.
 
-Ensure Substrate is installed globally:
+## See also
 
-```bash
-npm install -g substrate-cli
-substrate --version
-```
-
-### AI not suggesting Substrate commands
-
-Warp AI learns from your usage. The more you use Substrate commands, the better it suggests them.
-
-### Context not syncing
-
-Context is shared through committed `.substrate/` files — git is the transport:
-
-```bash
-substrate sync status             # Check the files and pending items
-git pull && substrate sync pull   # Load teammates' changes
-substrate sync push               # Write your changes, then commit with git
-```
-
-## Resources
-
-- [Warp Documentation](https://docs.warp.dev)
-- [Warp AI Features](https://www.warp.dev/warp-ai)
-- [Substrate CLI Reference](cli-reference.md)
+[CLI Reference](cli-reference.md) · [Sync & Sharing](sync.md) · [Agent Integration](agent-integration.md)

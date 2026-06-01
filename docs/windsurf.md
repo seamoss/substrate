@@ -1,227 +1,46 @@
-# Using Substrate with Windsurf
+# Substrate + Windsurf
 
-This guide explains how to integrate Substrate with [Windsurf](https://windsurf.com), Codeium's AI-powered editor.
-
-## Overview
-
-Windsurf uses a rules system similar to Cursor. Rules are stored in `.windsurf/rules/` and provide persistent instructions to Cascade (Windsurf's AI).
+Windsurf's Cascade reads rules from `.windsurf/rules/`. Add the Substrate protocol there
+(set it to **Always On**) so Cascade loads and captures context.
 
 ## Setup
 
-### 1. Install Substrate
-
-```bash
-npm install -g substrate-cli
-```
-
-### 2. Initialize Your Project
-
-```bash
-cd your-project
-substrate init your-project
-```
-
-There are no accounts or API keys — Substrate stores context in committed
-`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
-
-### 3. Create Windsurf Rules
-
-Create `.windsurf/rules/substrate.md` in your project:
-
-````markdown
-# Substrate Context Protocol
-
-This project uses Substrate for persistent context management.
-
-## On Session Start
-
-**Always run this command first** to load project context:
-
-```bash
-substrate brief --format agent
-```
-````
-
-Read and internalize all constraints and decisions before proceeding with any work.
-
-## During Work
-
-When you discover or establish any of the following, capture it immediately:
-
-| Discovery               | Command                                 |
-| ----------------------- | --------------------------------------- |
-| Hard rule or constraint | `substrate add "..." --type constraint` |
-| Architecture decision   | `substrate add "..." --type decision`   |
-| Important context       | `substrate add "..." --type note`       |
-| Related concepts        | `substrate link add <id1> <id2>`        |
-
-Use tags to categorize: `--tag api`, `--tag auth`, `--tag database`
-
-## On Task Completion
-
-After completing significant work:
-
-1. Capture any implicit constraints that should be explicit
-2. Document decisions made (with brief rationale)
-3. Link related concepts
-
-## Quick Reference
-
-```bash
-substrate brief --format agent      # Load context (START HERE)
-substrate brief --format claudemd  # Output for CLAUDE.md injection
-substrate brief --budget medium    # Token-budgeted output (~8K tokens)
-substrate add "..." -t TYPE        # Save context
-substrate ls                       # List recent context
-substrate ls --tag api             # Filter by tag
-substrate link add X Y             # Link related items
-substrate digest                   # What was added this session
-substrate recall "query"           # Search history
-```
-
-````
-
-## How It Works
-
-1. Windsurf loads rules from `.windsurf/rules/` when you open the project
-2. Cascade sees the instruction to run `substrate brief --format agent`
-3. Context is loaded and Cascade follows stored constraints/decisions
-4. During work, Cascade captures new discoveries with `substrate add`
-
-## Rule Activation Modes
-
-Windsurf supports different activation modes for rules:
-
-### Always Active (Recommended for Substrate)
-
-The rule applies to all Cascade interactions:
-
-```markdown
----
-trigger: always
----
-
-# Substrate Context Protocol
-...
-````
-
-### Model Decision
-
-Cascade decides when to apply the rule based on your description:
-
-```markdown
----
-trigger: model
-description: Use when working on code that may have architectural constraints or decisions
----
-
-# Substrate Context Protocol
-
-...
-```
-
-## Tips
-
-### Define Your Tag Taxonomy
-
-Include project-specific tags in the rules:
-
-```markdown
-## Project Tags
-
-Use these tags consistently:
-
-- `api` — API endpoints and contracts
-- `auth` — Authentication and authorization
-- `db` — Database schema and queries
-- `ui` — Frontend components
-- `infra` — Infrastructure and deployment
-- `security` — Security requirements
-```
-
-### Create Scoped Rules
-
-For large projects, create rules scoped to specific directories:
-
-````markdown
----
-trigger: glob
-globs:
-  - src/api/**
-  - src/routes/**
----
-
-# API Development Rules
-
-When working on API files:
-
-1. Check API-specific context first:
+1. Install and initialize (once per repo):
    ```bash
-   substrate ls --tag api
+   npm install -g substrate-cli
+   substrate init your-project      # already set up? git clone + substrate sync pull
    ```
-````
+2. Create `.windsurf/rules/substrate.md` (Always On). Keep it under Windsurf's per-rule
+   character limit — this block fits:
 
-2. After adding/modifying endpoints, capture:
-   ```bash
-   substrate add "POST /users requires auth token" --type constraint --tag api
+   ```markdown
+   ## Substrate context
+
+   This project uses Substrate for persistent, shared context — decisions, constraints,
+   and conventions stored in committed `.substrate/` files (git is the transport; no
+   server, no accounts).
+
+   - **At the start of a session**, load and follow context: `substrate brief --format agent`
+   - **When the work produces something durable** (a constraint, decision, or convention),
+     capture it: `substrate add "<statement>" --type <constraint|decision|note|task|entity|runbook|snippet> [--tag <tag>]`.
+     Add `--private` for personal/machine-specific notes (kept out of git).
+   - **After capturing**, share it: `substrate sync push`, then
+     `git add .substrate && git commit -m "Update context" && git push`.
+   - On a fresh clone, run `substrate sync pull` first.
    ```
 
-```
+## Verify
 
-### Combine with Memories
-
-Windsurf's Memories system complements Substrate:
-- **Substrate**: Shared team context, version-controlled
-- **Memories**: Personal preferences, auto-generated
-
-## Character Limits
-
-Windsurf has limits on rule content:
-- Individual rules: 6,000 characters max
-- Combined rules: 12,000 characters max
-
-Keep your Substrate rules concise. The actual context lives in Substrate, not the rules file.
-
-## Verifying It Works
-
-Start a new Windsurf session and ask Cascade:
-
-```
-
-What project constraints and decisions should I know about?
-
-````
-
-Cascade should run `substrate brief --format agent` and summarize the context.
+Ask Cascade: _"What constraints and decisions are stored for this project?"_ It should run
+`substrate brief --format agent` and report them.
 
 ## Troubleshooting
 
-### Cascade isn't following the rules
+- **Cascade isn't following the rules** — confirm `.windsurf/rules/substrate.md` is Always On
+  and not truncated, and `substrate --version` works.
+- **No context** — `substrate status` and `substrate sync status`.
+- **Team out of sync** — `git pull && substrate sync pull`; after capturing, `substrate sync push` + commit.
 
-1. Check the file is in `.windsurf/rules/` with `.md` extension
-2. Click the Customizations icon → Rules to verify it's loaded
-3. Check the trigger mode is appropriate
+## See also
 
-### Context not loading
-
-```bash
-substrate status         # Check the context store
-substrate sync pull      # Load the latest .substrate/ files into the cache
-````
-
-### Rules truncated
-
-If you're hitting character limits, keep the Substrate rule minimal:
-
-```markdown
-# Substrate
-
-Run `substrate brief --format agent` at session start.
-Capture context with `substrate add "..." --type TYPE --tag TAG`.
-```
-
-## Resources
-
-- [Windsurf Rules Documentation](https://docs.windsurf.com)
-- [Windsurf Rules Directory](https://windsurf.com/editor/directory)
-- [Substrate CLI Reference](cli-reference.md)
+[CLI Reference](cli-reference.md) · [Sync & Sharing](sync.md) · [Agent Integration](agent-integration.md)

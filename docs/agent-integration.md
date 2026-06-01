@@ -55,60 +55,37 @@ The agent reads instructions from your `CLAUDE.md` file and executes CLI command
 
 ### Setup
 
-1. **Verify strategy is set (it's the default):**
+1. **Install and initialize** (once per repo):
 
    ```bash
-   substrate config show
-   # Strategy: instructions
+   npm install -g substrate-cli
+   substrate init your-project      # already set up? git clone + substrate sync pull
    ```
 
-2. **Add protocol to your CLAUDE.md:**
-
-   ````markdown
-   ## Substrate Protocol
-
-   This project uses Substrate for persistent context.
-
-   ### On Session Start
+2. **Confirm the instructions strategy** (the default):
 
    ```bash
-   substrate brief --format agent
-   ```
-   ````
-
-   ### During Work
-
-   | Discovery | Command                                 |
-   | --------- | --------------------------------------- |
-   | Hard rule | `substrate add "..." --type constraint` |
-   | Decision  | `substrate add "..." --type decision`   |
-   | Context   | `substrate add "..." --type note`       |
-
-   ### Session Tracking
-
-   ```bash
-   substrate session start "task-name"  # Start tracking
-   substrate session end                 # End with summary
+   substrate config show            # Strategy: instructions
    ```
 
-   ### Quick Reference
+3. **Add the Substrate protocol to your harness's rules file** — `CLAUDE.md`,
+   `.cursor/rules/*.mdc`, `.github/copilot-instructions.md`, `.rules`, etc. See the
+   [IDE-specific guides](#ide-specific-guides) for the exact location. Use this block:
 
-   ```bash
-   substrate brief --format agent  # Load context
-   substrate add "..." -t TYPE     # Save context
-   substrate ls                    # List recent
-   substrate extract diff          # Review changes for context
-   substrate session status        # Check session
-   ```
+   ```markdown
+   ## Substrate context
 
-   ```
+   This project uses Substrate for persistent, shared context — decisions, constraints,
+   and conventions stored in committed `.substrate/` files (git is the transport; no
+   server, no accounts).
 
-   ```
-
-3. **Initialize your workspace:**
-
-   ```bash
-   substrate init myproject
+   - **At the start of a session**, load and follow context: `substrate brief --format agent`
+   - **When the work produces something durable** (a constraint, decision, or convention),
+     capture it: `substrate add "<statement>" --type <constraint|decision|note|task|entity|runbook|snippet> [--tag <tag>]`.
+     Add `--private` for personal/machine-specific notes (kept out of git).
+   - **After capturing**, share it: `substrate sync push`, then
+     `git add .substrate && git commit -m "Update context" && git push`.
+   - On a fresh clone, run `substrate sync pull` first.
    ```
 
 ### How It Works

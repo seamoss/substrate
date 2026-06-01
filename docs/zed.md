@@ -1,213 +1,49 @@
-# Using Substrate with Zed
+# Substrate + Zed
 
-This guide explains how to integrate Substrate with [Zed](https://zed.dev), the high-performance code editor with built-in AI.
-
-## Overview
-
-Zed's AI assistant supports custom context through:
-
-- **Rules files** (`.rules`) — Project-specific instructions
-- **@mentions** — Reference files, symbols, and rules in chat
-- **MCP support** — Model Context Protocol integration
+Zed's assistant reads a `.rules` file at the project root. Add the Substrate protocol
+there so Zed loads and captures context.
 
 ## Setup
 
-### 1. Install Substrate
+1. Install and initialize (once per repo):
+   ```bash
+   npm install -g substrate-cli
+   substrate init your-project      # already set up? git clone + substrate sync pull
+   ```
+2. Create a `.rules` file in your project root:
 
-```bash
-npm install -g substrate-cli
-```
+   ```markdown
+   ## Substrate context
 
-### 2. Initialize Your Project
+   This project uses Substrate for persistent, shared context — decisions, constraints,
+   and conventions stored in committed `.substrate/` files (git is the transport; no
+   server, no accounts).
 
-```bash
-cd your-project
-substrate init your-project
-```
+   - **At the start of a session**, load and follow context: `substrate brief --format agent`
+   - **When the work produces something durable** (a constraint, decision, or convention),
+     capture it: `substrate add "<statement>" --type <constraint|decision|note|task|entity|runbook|snippet> [--tag <tag>]`.
+     Add `--private` for personal/machine-specific notes (kept out of git).
+   - **After capturing**, share it: `substrate sync push`, then
+     `git add .substrate && git commit -m "Update context" && git push`.
+   - On a fresh clone, run `substrate sync pull` first.
+   ```
 
-There are no accounts or API keys — Substrate stores context in committed
-`.substrate/` files and shares it through git. See [Sync & Sharing](sync.md).
+**Native tools (optional):** Zed supports MCP context servers. Run
+`substrate config strategy mcp`, then add `substrate mcp serve` as a context server so the
+agent uses Substrate tools directly. See [Agent Integration](agent-integration.md).
 
-### 3. Create Rules File
+## Verify
 
-Create a `.rules` file in your project root:
-
-````markdown
-# Substrate Context Protocol
-
-This project uses Substrate for persistent context management.
-
-## On Session Start
-
-Always run this command first to load project context:
-
-```bash
-substrate brief --format agent
-```
-````
-
-Read and internalize all constraints and decisions before proceeding.
-
-## During Work
-
-Capture discoveries immediately:
-
-| Discovery    | Command                                 |
-| ------------ | --------------------------------------- |
-| Hard rule    | `substrate add "..." --type constraint` |
-| Decision     | `substrate add "..." --type decision`   |
-| Context      | `substrate add "..." --type note`       |
-| Relationship | `substrate link add <id1> <id2>`        |
-
-Use tags: `--tag api`, `--tag auth`, `--tag database`
-
-## Quick Reference
-
-```bash
-substrate brief --format agent      # Load context first
-substrate brief --format claudemd  # Output for CLAUDE.md injection
-substrate brief --budget medium    # Token-budgeted output (~8K tokens)
-substrate add "..." -t TYPE        # Save context
-substrate ls                       # List recent
-substrate link add X Y             # Link items
-substrate digest                   # Session summary
-substrate recall "query"           # Search history
-```
-
-```
-
-## How It Works
-
-1. Zed detects `.rules` in your project root
-2. The rules content is available via `@rules` mention
-3. You can reference it in the Agent Panel or use it automatically
-4. The AI follows the protocol to load and capture context
-
-## Using Rules in Zed
-
-### Automatic Detection
-
-When you create a `.rules` file, Zed automatically makes it available. The AI will use its contents when generating code.
-
-### Manual Reference
-
-In the Agent Panel, type `@rules` to explicitly include your rules in the conversation:
-
-```
-
-@rules What constraints exist for the API?
-
-```
-
-### With File Context
-
-Combine rules with file references:
-
-```
-
-@rules @src/api/users.ts Add input validation following project constraints
-
-```
-
-## Tips
-
-### Use the Rules Library
-
-Zed has a built-in rules library. You can create custom rules and reference them:
-
-1. Open Command Palette → "Open Rules Library"
-2. Create a new rule called "substrate"
-3. Paste your Substrate protocol
-4. Reference with `@substrate` in chat
-
-### Combine with @file
-
-Bring in relevant context alongside Substrate:
-
-```
-
-@rules @package.json What database should we use for this project?
-
-````
-
-### Thread Management
-
-Zed allows editing previous messages. If the AI didn't load Substrate context:
-
-1. Click on your message
-2. Add: "First run `substrate brief --format agent`"
-3. Re-submit
-
-### Checkpoints
-
-After the AI makes changes, use "Restore Checkpoint" if needed. Then capture what worked:
-
-```bash
-substrate add "Approach X worked better than Y for auth" --type decision --tag auth
-````
-
-## Project-Specific Tags
-
-Include your tag taxonomy in `.rules`:
-
-```markdown
-## Project Tags
-
-- `api` — REST endpoints, GraphQL
-- `auth` — Authentication, sessions
-- `db` — Database, migrations
-- `ui` — Components, styling
-- `test` — Testing patterns
-```
-
-## MCP Integration (Advanced)
-
-Zed supports the Model Context Protocol. While Substrate has an MCP server, you can also use the CLI-based approach through rules for simpler setup.
-
-If you want to use MCP:
-
-```bash
-substrate config strategy mcp
-substrate mcp serve
-```
-
-Then configure Zed to use the MCP server (see Zed's MCP documentation).
-
-## Verifying It Works
-
-In Zed's Agent Panel:
-
-```
-@rules What does this project use for context management?
-```
-
-The AI should recognize Substrate and offer to run `substrate brief --format agent`.
+Ask in the assistant panel: _"What constraints and decisions are stored for this project?"_
+Zed should run `substrate brief --format agent` and report them.
 
 ## Troubleshooting
 
-### Rules not loading
+- **Zed isn't following the rules** — confirm `.rules` is at the project root and
+  `substrate --version` works.
+- **No context** — `substrate status` and `substrate sync status`.
+- **Team out of sync** — `git pull && substrate sync pull`; after capturing, `substrate sync push` + commit.
 
-1. Verify `.rules` file is in project root
-2. Check the file has valid Markdown content
-3. Restart Zed to reload the workspace
+## See also
 
-### AI not running Substrate commands
-
-Be explicit in your prompts:
-
-```
-Following the project rules, first load the Substrate context, then help me with [task]
-```
-
-### Context not saving
-
-```bash
-substrate status         # Check the context store
-substrate sync status    # Check the .substrate/ files and pending items
-```
-
-## Resources
-
-- [Zed AI Documentation](https://zed.dev/docs/ai/overview)
-- [Zed Agent Panel](https://zed.dev/docs/ai/agent-panel)
-- [Substrate CLI Reference](cli-reference.md)
+[CLI Reference](cli-reference.md) · [Sync & Sharing](sync.md) · [Agent Integration](agent-integration.md)
