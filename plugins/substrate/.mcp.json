@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "substrate": {
+      "type": "stdio",
+      "command": "substrate",
+      "args": ["mcp", "serve"],
+      "env": {
+        "SUBSTRATE_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}"
+      }
+    }
+  }
+}

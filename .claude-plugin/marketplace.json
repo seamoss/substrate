@@ -1,0 +1,14 @@
+{
+  "name": "substrate",
+  "owner": {
+    "name": "Substrate",
+    "url": "https://github.com/seamoss/substrate"
+  },
+  "plugins": [
+    {
+      "name": "substrate",
+      "source": "./plugins/substrate",
+      "description": "Store and recall project context with Substrate: asks once per project whether to track context, captures decisions/constraints into committed .substrate/ files, and registers the Substrate MCP server."
+    }
+  ]
+}

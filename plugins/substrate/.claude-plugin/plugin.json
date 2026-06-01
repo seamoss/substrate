@@ -1,0 +1,11 @@
+{
+  "name": "substrate",
+  "description": "Store and recall project context with Substrate. Asks once per project whether to track context, captures decisions/constraints into committed .substrate/ files, and registers the Substrate MCP server.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Substrate"
+  },
+  "homepage": "https://github.com/seamoss/substrate",
+  "repository": "https://github.com/seamoss/substrate",
+  "license": "MIT"
+}
