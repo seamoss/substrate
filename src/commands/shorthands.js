@@ -42,7 +42,10 @@ export const addCommand = new Command('add')
   .option('-s, --scope <scope>', 'Scope path', '*')
   .option('-f, --force', 'Skip duplicate check')
   .option('-y, --yes', 'Non-interactive mode (skip duplicate check, same as --force)')
-  .option('--private', 'Keep personal (written to gitignored .substrate.priv, never committed)')
+  .option(
+    '--private',
+    'Keep personal (written to gitignored .substrate/*.priv.jsonl, never committed)'
+  )
   .option('--json', 'Output as JSON')
   .action(async (content, options) => {
     // --yes is an alias for --force (for agent workflows)

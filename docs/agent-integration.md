@@ -171,7 +171,7 @@ The MCP server exposes Substrate as native tools that agents can call directly.
    substrate mcp serve
    ```
 
-### Available Tools (v0.2.0)
+### Available Tools
 
 | Tool                | Description                                   |
 | ------------------- | --------------------------------------------- |

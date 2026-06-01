@@ -87,7 +87,10 @@ contextCommand
   .option('--tag <tags>', 'Comma-separated tags')
   .option('-s, --scope <scope>', 'Scope path', '*')
   .option('-f, --force', 'Skip duplicate check')
-  .option('--private', 'Keep personal (written to gitignored .substrate.priv, never committed)')
+  .option(
+    '--private',
+    'Keep personal (written to gitignored .substrate/*.priv.jsonl, never committed)'
+  )
   .option('--json', 'Output as JSON')
   .action(async (content, options) => {
     const db = getDb();

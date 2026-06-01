@@ -568,7 +568,7 @@ substrate config set <key> <value>
 
 ## mcp
 
-MCP server (v0.2.0) for native agent integration. Provides 9 tools and 3 resources.
+MCP server for native agent integration. Provides 9 tools and 3 resources.
 
 ### mcp serve
 
@@ -728,8 +728,9 @@ substrate recall [query] [options]
 **Options:**
 
 - `-t, --type <type>` — Filter by type
+- `--tag <tag>` — Filter by tag
 - `--hours <n>` — Time window (default: 24)
-- `-n, --limit <n>` — Limit results (default: 10)
+- `-n, --limit <n>` — Limit results (default: 20)
 - `-w, --workspace <name>` — Workspace name
 - `--json` — Output as JSON
 

@@ -20,13 +20,16 @@ accounts — git is the transport.
 
 1. Determine whether the project is already tracked: does `.substrate/config.json` exist?
    - **Yes** → load context: `substrate sync pull`, then read it with `substrate brief --format agent`.
-   - **No**, and there is no `.substrate-optout` file in the repo → **ask the user once**:
-     > "Track this project's context with Substrate? It stores decisions and constraints
-     > in committed `.substrate/` files so they persist across sessions and sync via git."
-     - If **yes** → `substrate init "<project-directory-name>"`. If you'll use the MCP
-       server, also run `substrate config strategy mcp`.
-     - If **no** → create an empty `.substrate-optout` file so you don't ask again.
-   - If `.substrate-optout` exists → do nothing; don't ask.
+   - **No** → check the per-machine opt-out list: is this project's absolute path in
+     `~/.substrate/optout`? (`grep -qxF "$(pwd)" ~/.substrate/optout 2>/dev/null`)
+     - If it **is listed** → do nothing; don't ask.
+     - Otherwise → **ask the user once**:
+       > "Track this project's context with Substrate? It stores decisions and constraints
+       > in committed `.substrate/` files so they persist across sessions and sync via git."
+       - If **yes** → `substrate init "<project-directory-name>"`. If you'll use the MCP
+         server, also run `substrate config strategy mcp`.
+       - If **no** → record a per-machine opt-out so you won't ask again:
+         `mkdir -p ~/.substrate && pwd >> ~/.substrate/optout`
 
 ## Capturing context
 

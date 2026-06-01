@@ -57,5 +57,7 @@ args = ["mcp", "serve"]
 ## How "ask once" persists without hooks
 
 These agents can't run a SessionStart hook, so persistence is file-based and lives in the
-instructions: a tracked project has `.substrate/config.json`; a declined project gets a
-`.substrate-optout` marker. The agent checks both before asking, so it only asks once.
+instructions: a tracked project has `.substrate/config.json`; a declined project's absolute
+path is appended to the per-machine `~/.substrate/optout` list (the same mechanism the
+Claude Code plugin uses — per machine, never committed). The agent checks both before
+asking, so it only asks once.

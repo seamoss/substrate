@@ -60,7 +60,7 @@ let db = null;
  * @property {string} tags - JSON-encoded array of tags
  * @property {string} scope - Scope path pattern (default: '*')
  * @property {string} meta - JSON-encoded metadata object
- * @property {number} private - 0 = shared (.substrate/), 1 = personal (.substrate.priv/)
+ * @property {number} private - 0 = shared (context.jsonl), 1 = personal (context.priv.jsonl)
  * @property {string|null} remote_id - Deprecated; unused since git-backed sync
  * @property {string} created_at - ISO 8601 timestamp
  * @property {string} updated_at - ISO 8601 timestamp

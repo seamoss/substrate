@@ -180,7 +180,7 @@ export async function pushChanges(workspaceId, options = {}) {
     }
     if (counts.privateContext > 0 || counts.privateLinks > 0) {
       console.log(
-        `  Wrote ${counts.privateContext} private item(s) and ${counts.privateLinks} private link(s) to ${root}/.substrate.priv/`
+        `  Wrote ${counts.privateContext} private item(s) and ${counts.privateLinks} private link(s) to ${root}/.substrate/ (*.priv.jsonl)`
       );
     }
   }
