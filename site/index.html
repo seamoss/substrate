@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Substrate — shared context for humans &amp; AI agents</title>
+    <meta
+      name="description"
+      content="Substrate is a git-backed shared context layer for humans and AI agents. Decisions and constraints live in committed .substrate/ files — no server, no accounts."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark" aria-hidden="true"></span>
+        substrate
+      </a>
+      <nav class="nav-links">
+        <a href="./docs.html#/getting-started">Docs</a>
+        <a href="./docs.html#/cli-reference">CLI</a>
+        <a href="./docs.html#/sync">Sync</a>
+        <a class="gh" href="https://github.com/seamoss/substrate">GitHub →</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">git-backed context layer</div>
+          <h1>Shared context for humans <span class="amp">&amp;</span> AI agents.</h1>
+          <p class="lede">
+            Agents forget between sessions. Teams lose decisions across repos. Substrate keeps
+            durable project context — constraints, decisions, conventions — in
+            <strong>committed <code>.substrate/</code> files</strong>, synced through the git you
+            already use. No server. No accounts.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" href="./docs.html#/getting-started">Get started</a>
+            <button class="btn btn-ghost copy" data-copy="npm install -g substrate-cli">
+              <code>npm install -g substrate-cli</code>
+              <span class="copy-hint">copy</span>
+            </button>
+          </div>
+          <div class="badges">
+            <span>offline-first cache</span>
+            <span>token-aware briefs</span>
+            <span>MCP + Claude Code plugin</span>
+          </div>
+        </div>
+
+        <div class="hero-demo">
+          <div class="terminal" id="demo">
+            <div class="terminal-bar">
+              <span class="dot red"></span><span class="dot amber"></span
+              ><span class="dot green"></span>
+              <span class="terminal-title">two machines, one shared mind</span>
+            </div>
+            <pre class="terminal-body" id="demo-body"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="why">
+        <div class="card">
+          <h3>Agents keep context</h3>
+          <p>
+            Rehydrate any session with <code>substrate brief --format agent</code> — prioritized,
+            token-budgeted, constraints first.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Teams share truth</h3>
+          <p>
+            Context is versioned next to the code and travels through pull requests like everything
+            else. Clone the repo, get the context.
+          </p>
+        </div>
+        <div class="card">
+          <h3>No infrastructure</h3>
+          <p>
+            Git is the transport. Identity and access control are your git host's. Nothing to run,
+            nothing to log into.
+          </p>
+        </div>
+      </section>
+
+      <section class="how">
+        <h2>How it works</h2>
+        <p class="section-lede">
+          A local SQLite cache for speed; committed files for truth; git for sync.
+        </p>
+        <div class="flow">
+          <div class="flow-node">
+            <h4>local cache</h4>
+            <code>~/.substrate/local.db</code>
+            <p>Fast, rebuildable. Never committed.</p>
+          </div>
+          <div class="flow-arrow">
+            <span>sync push →</span>
+            <span>← sync pull</span>
+          </div>
+          <div class="flow-node accent">
+            <h4>.substrate/ files</h4>
+            <code>context.jsonl · links.jsonl</code>
+            <p>The shared “collective mind.” Committed.</p>
+          </div>
+          <div class="flow-arrow">
+            <span>git push →</span>
+            <span>← git pull</span>
+          </div>
+          <div class="flow-node">
+            <h4>teammates &amp; CI</h4>
+            <code>git clone</code>
+            <p>Pull the repo, pull the context.</p>
+          </div>
+        </div>
+        <div class="split-note">
+          <div>
+            <h4>Shared by default</h4>
+            <p>
+              Everything you capture lands in committed <code>.substrate/context.jsonl</code> for
+              the whole team.
+            </p>
+          </div>
+          <div>
+            <h4>Private when you want</h4>
+            <p>
+              Add <code>--private</code> and it goes to a gitignored
+              <code>context.priv.jsonl</code> — personal notes that never leave your machine.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="agents">
+        <h2>Built for your agents</h2>
+        <div class="agent-grid">
+          <div class="card">
+            <h3>Claude Code plugin</h3>
+            <p>
+              Asks once per project whether to track context, captures decisions automatically, and
+              registers the MCP server.
+            </p>
+            <pre class="snippet"><code>/plugin marketplace add seamoss/substrate
+/plugin install substrate@substrate</code></pre>
+          </div>
+          <div class="card">
+            <h3>Codex, Cursor &amp; more</h3>
+            <p>
+              A portable <code>AGENTS.md</code> protocol plus MCP config gives any agent the same
+              capture-and-sync behavior.
+            </p>
+            <pre class="snippet"><code>cat substrate/plugins/codex/AGENTS.md >> AGENTS.md</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="quickstart">
+        <h2>Quick start</h2>
+        <pre class="snippet block"><code># Initialize — no account needed
+substrate init myproject
+
+# Capture context as you work
+substrate add "All API responses must be JSON" --type constraint
+substrate add "Using PostgreSQL for ACID" --type decision
+substrate add "My local DB is on port 5544" --type note --private
+
+# Share it: write files, then commit with git
+substrate sync push
+git add .substrate && git commit -m "Add context" && git push
+
+# On another machine
+git pull && substrate sync pull</code></pre>
+        <a class="btn btn-primary" href="./docs.html#/getting-started">Read the docs →</a>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Substrate · MIT</span>
+      <nav>
+        <a href="./docs.html#/getting-started">Docs</a>
+        <a href="https://github.com/seamoss/substrate">GitHub</a>
+        <a href="https://www.npmjs.com/package/substrate-cli">npm</a>
+      </nav>
+    </footer>
+
+    <script src="./assets/demo.js" defer></script>
+  </body>
+</html>

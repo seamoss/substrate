@@ -41,6 +41,16 @@ export default [
     }
   },
   {
+    // Static site (browser JS, no build step)
+    files: ['site/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.es2021
+      }
+    }
+  },
+  {
     files: ['tests/**/*.js'],
     languageOptions: {
       globals: {
