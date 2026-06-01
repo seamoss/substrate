@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
  * modules fresh per test so each gets an isolated cache.
  */
 describe('lib/sync reconciliation', () => {
-  let tempHome, projectDir, sync, dbmod, db, workspace, originalHome;
+  let tempHome, projectDir, sync, store, dbmod, db, workspace, originalHome;
 
   function writeFiles({ context = [], links = [], manifest }) {
     const dir = join(projectDir, '.substrate');
@@ -32,6 +32,7 @@ describe('lib/sync reconciliation', () => {
     vi.resetModules();
     dbmod = await import('../../src/db/local.js');
     sync = await import('../../src/lib/sync.js');
+    store = await import('../../src/lib/store.js');
 
     db = dbmod.getDb();
     const id = randomUUID();
@@ -41,12 +42,6 @@ describe('lib/sync reconciliation', () => {
        VALUES (?, ?, ?, ?, ?, ?)`
     ).run(id, 'demo', '', randomUUID(), now, now);
     workspace = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(id);
-
-    // Mount the workspace at projectDir so resolveWorkspaceRoot finds the files.
-    db.prepare(
-      `INSERT INTO mounts (workspace_id, path, scope, tags, created_at, updated_at)
-       VALUES (?, ?, '*', '[]', ?, ?)`
-    ).run(workspace.id, projectDir, now, now);
   });
 
   afterEach(() => {
@@ -73,7 +68,7 @@ describe('lib/sync reconciliation', () => {
       ]
     });
 
-    const res = await sync.pullChanges(workspace.id);
+    const res = await sync.pullChanges(workspace, projectDir);
     expect(res.pulled).toBe(1);
 
     const row = db.prepare('SELECT * FROM context WHERE id = ?').get('ctx-1');
@@ -103,7 +98,7 @@ describe('lib/sync reconciliation', () => {
         { ...base, content: 'file old', updated_at: '2026-02-01T00:00:00.000Z', deleted_at: null }
       ]
     });
-    let res = await sync.pullChanges(workspace.id);
+    let res = await sync.pullChanges(workspace, projectDir);
     expect(res.skipped).toBe(1);
     expect(db.prepare('SELECT content FROM context WHERE id = ?').get('ctx-1').content).toBe(
       'local v1'
@@ -115,7 +110,7 @@ describe('lib/sync reconciliation', () => {
         { ...base, content: 'file new', updated_at: '2026-04-01T00:00:00.000Z', deleted_at: null }
       ]
     });
-    res = await sync.pullChanges(workspace.id);
+    res = await sync.pullChanges(workspace, projectDir);
     expect(res.updated).toBe(1);
     expect(db.prepare('SELECT content FROM context WHERE id = ?').get('ctx-1').content).toBe(
       'file new'
@@ -144,7 +139,7 @@ describe('lib/sync reconciliation', () => {
       ]
     });
 
-    await sync.pullChanges(workspace.id);
+    await sync.pullChanges(workspace, projectDir);
     const row = db.prepare('SELECT * FROM context WHERE id = ?').get('ctx-1');
     expect(row.deleted_at).toBe('2026-05-01T00:00:00.000Z');
   });
@@ -155,7 +150,7 @@ describe('lib/sync reconciliation', () => {
        VALUES (?, ?, 'note', 'mine', '[]', '*', '{}', ?, ?)`
     ).run('ctx-1', workspace.id, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
 
-    const res = await sync.pushChanges(workspace.id);
+    const res = await sync.pushChanges(workspace, projectDir);
     expect(res.context).toBe(1);
     expect(res.root).toBe(projectDir);
 
@@ -174,7 +169,7 @@ describe('lib/sync reconciliation', () => {
       context: []
     });
 
-    const ws = sync.bootstrapWorkspaceFromFiles(db, projectDir);
+    const { workspace: ws } = store.resolveStore(db, projectDir);
     expect(ws.name).toBe('cloned');
     expect(ws.project_id).toBe(pid);
   });

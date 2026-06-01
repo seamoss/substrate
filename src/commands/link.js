@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
 import { success, error, info, formatJson, contextItem, shortId, dim } from '../lib/output.js';
+import { requireStore } from '../lib/store.js';
 import chalk from 'chalk';
 
 const RELATION_TYPES = [
@@ -33,21 +34,6 @@ function findContextByShortId(db, shortIdStr, workspaceId) {
   return { found: true, item: items[0] };
 }
 
-function findWorkspaceForCwd() {
-  const db = getDb();
-  const cwd = process.cwd();
-
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (cwd.startsWith(mount.path)) {
-      return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id);
-    }
-  }
-
-  return null;
-}
-
 export const linkCommand = new Command('link').description(
   'Manage relationships between context objects'
 );
@@ -59,25 +45,11 @@ linkCommand
   .argument('<from>', 'Source context ID (short ID)')
   .argument('<to>', 'Target context ID (short ID)')
   .option('-r, --relation <type>', `Relation type: ${RELATION_TYPES.join(', ')}`, 'relates_to')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async (from, to, options) => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     // Validate relation type
     if (!RELATION_TYPES.includes(options.relation)) {
@@ -157,25 +129,11 @@ linkCommand
   .alias('ls')
   .description('List links for a context object or all links')
   .argument('[id]', 'Context ID to show links for (optional)')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async (id, options) => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     let links;
 
@@ -280,25 +238,11 @@ linkCommand
   .description('Remove a link between two context objects')
   .argument('<from>', 'Source context ID (short ID)')
   .argument('<to>', 'Target context ID (short ID)')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async (from, to, options) => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     // Find source context
     const fromResult = findContextByShortId(db, from, workspace.id);

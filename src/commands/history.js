@@ -1,22 +1,8 @@
 import { Command } from 'commander';
 import { getDb, searchContext } from '../db/local.js';
-import { formatJson, heading, contextItem, info, dim, shortId } from '../lib/output.js';
+import { formatJson, heading, contextItem, info, dim, shortId, error } from '../lib/output.js';
+import { requireStore } from '../lib/store.js';
 import chalk from 'chalk';
-
-function findWorkspaceForCwd() {
-  const db = getDb();
-  const cwd = process.cwd();
-
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (cwd.startsWith(mount.path)) {
-      return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id);
-    }
-  }
-
-  return null;
-}
 
 function parseTimeAgo(hoursAgo) {
   const now = new Date();
@@ -41,24 +27,13 @@ function formatTimeAgo(isoString) {
 export const digestCommand = new Command('digest')
   .description('Summarize context added in current session')
   .option('-h, --hours <n>', 'Hours to look back', '8')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(options => {
     const db = getDb();
     const hoursAgo = parseFloat(options.hours);
     const cutoff = parseTimeAgo(hoursAgo);
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-    } else {
-      workspace = findWorkspaceForCwd();
-    }
-
-    if (!workspace) {
-      info('No workspace found');
-      return;
-    }
+    const { workspace } = requireStore(db, error);
 
     // Get recent context
     const items = db
@@ -199,24 +174,13 @@ export const recallCommand = new Command('recall')
   .option('-t, --type <type>', 'Filter by type')
   .option('--tag <tag>', 'Filter by tag')
   .option('-n, --limit <n>', 'Limit results', '20')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action((query, options) => {
     const db = getDb();
     const hoursAgo = parseFloat(options.hours);
     const cutoff = parseTimeAgo(hoursAgo);
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-    } else {
-      workspace = findWorkspaceForCwd();
-    }
-
-    if (!workspace) {
-      info('No workspace found');
-      return;
-    }
+    const { workspace } = requireStore(db, error);
 
     // Use FTS5 when a search query is provided, otherwise time-based query
     let items;

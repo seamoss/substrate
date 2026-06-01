@@ -32,31 +32,8 @@ import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
 import { success, error, info, warn, formatJson, dim, shortId } from '../lib/output.js';
+import { requireStore } from '../lib/store.js';
 import chalk from 'chalk';
-
-/**
- * Find workspace for the current working directory via mount lookup.
- *
- * Searches mounts in order of path length (most specific first) to find
- * the workspace that contains the current directory.
- *
- * @returns {import('../db/local.js').Workspace|null} Matching workspace or null
- * @private
- */
-function findWorkspaceForCwd() {
-  const db = getDb();
-  const cwd = process.cwd();
-
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (cwd.startsWith(mount.path)) {
-      return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id);
-    }
-  }
-
-  return null;
-}
 
 /**
  * Get the currently active session for a workspace.
@@ -187,25 +164,11 @@ sessionCommand
   .command('start')
   .description('Start a new work session')
   .argument('[name]', 'Optional session name')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async (name, options) => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     // Check for existing active session
     const active = getActiveSession(db, workspace.id);
@@ -261,25 +224,11 @@ sessionCommand
 sessionCommand
   .command('end')
   .description('End the current work session')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async options => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     const active = getActiveSession(db, workspace.id);
     if (!active) {
@@ -333,25 +282,11 @@ sessionCommand
 sessionCommand
   .command('status')
   .description('Show current session status')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async options => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     const active = getActiveSession(db, workspace.id);
 
@@ -406,26 +341,12 @@ sessionCommand
   .command('list')
   .alias('ls')
   .description('List recent sessions')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('-n, --limit <n>', 'Number of sessions to show', '10')
   .option('--json', 'Output as JSON')
   .action(async options => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     const sessions = db
       .prepare(

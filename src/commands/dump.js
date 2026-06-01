@@ -3,49 +3,17 @@ import { getDb } from '../db/local.js';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { success, error, dim } from '../lib/output.js';
-
-function findWorkspaceForCwd() {
-  const db = getDb();
-  const cwd = process.cwd();
-
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (cwd.startsWith(mount.path)) {
-      return {
-        workspace: db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id),
-        mount
-      };
-    }
-  }
-
-  return { workspace: null, mount: null };
-}
+import { requireStore } from '../lib/store.js';
 
 export const dumpCommand = new Command('dump')
   .description('Export all project context to a markdown file')
   .option('-o, --output <path>', 'Output file path', '.substrate/CONTEXT.md')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--no-links', 'Exclude relationship links')
   .option('--flat', 'Flat format without sections')
   .action(options => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      const result = findWorkspaceForCwd();
-      workspace = result.workspace;
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace, root } = requireStore(db, error);
 
     // Get all context
     const items = db
@@ -201,7 +169,7 @@ export const dumpCommand = new Command('dump')
     const content = lines.join('\n');
 
     // Resolve output path
-    const outputPath = resolve(process.cwd(), options.output);
+    const outputPath = resolve(root, options.output);
     const outputDir = dirname(outputPath);
 
     // Ensure directory exists

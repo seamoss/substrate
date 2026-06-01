@@ -38,14 +38,13 @@ export const initCommand = new Command('init')
   .action(async (name, options) => {
     const db = getDb();
 
-    // Check if workspace exists locally
-    const existing = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(name);
-
-    if (existing) {
+    // Already initialized in this directory?
+    if (existsSync(join(process.cwd(), '.substrate', 'config.json'))) {
+      const msg = 'This directory already has a .substrate/ workspace';
       if (options.json) {
-        console.log(formatJson({ workspace: existing, created: false }));
+        console.log(formatJson({ created: false, error: msg }));
       } else {
-        info(`Workspace '${name}' already exists`);
+        info(msg);
       }
       return;
     }
@@ -61,12 +60,6 @@ export const initCommand = new Command('init')
       VALUES (?, ?, ?, ?, ?, ?)
     `
     ).run(id, name, options.description || '', projectId, now, now);
-
-    // Mount the current directory so commands resolve this workspace by cwd.
-    db.prepare(
-      `INSERT OR IGNORE INTO mounts (workspace_id, path, scope, tags, created_at, updated_at)
-       VALUES (?, ?, '*', '[]', ?, ?)`
-    ).run(id, process.cwd(), now, now);
 
     // Create .substrate/config.json with project_id
     saveProjectConfig({ project_id: projectId });

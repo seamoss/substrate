@@ -34,6 +34,7 @@ import {
 
 import { getDb, searchContext } from '../db/local.js';
 import { getStrategy } from '../commands/config.js';
+import { resolveStore } from '../lib/store.js';
 import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { parseBudget, fitToBudget } from '../lib/tokens.js';
@@ -51,17 +52,12 @@ const RELATION_TYPES = [
 ];
 
 // Helper functions
+// Resolve the context store for a path by discovering the enclosing `.substrate/`
+// (walking up like git finds `.git`). Returns { root, workspace } or nulls.
 function findWorkspaceForPath(db, targetPath) {
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-  for (const mount of mounts) {
-    if (targetPath.startsWith(mount.path)) {
-      return {
-        mount,
-        workspace: db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id)
-      };
-    }
-  }
-  return { mount: null, workspace: null };
+  const store = resolveStore(db, targetPath);
+  if (!store) return { root: null, workspace: null };
+  return { root: store.root, workspace: store.workspace };
 }
 
 function shortId(id) {
@@ -125,7 +121,7 @@ function errorResponse(message) {
 async function handleBrief(args) {
   const db = getDb();
   const targetPath = resolve(args.path || process.cwd());
-  const { mount, workspace } = findWorkspaceForPath(db, targetPath);
+  const { root, workspace } = findWorkspaceForPath(db, targetPath);
 
   if (!workspace) {
     return { _error: 'No workspace found for this path' };
@@ -154,7 +150,7 @@ async function handleBrief(args) {
   }));
 
   // Scope filtering
-  const relativePath = mount ? targetPath.replace(mount.path, '').replace(/^\//, '') : '';
+  const relativePath = root ? targetPath.replace(root, '').replace(/^\//, '') : '';
   let filtered = parsed.filter(item => {
     if (!item.scope || item.scope === '*') return true;
     if (relativePath.startsWith(item.scope)) return true;

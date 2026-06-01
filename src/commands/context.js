@@ -30,6 +30,7 @@ import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
 import { success, error, info, warn, formatJson, contextItem, shortId } from '../lib/output.js';
 import { checkDuplicate } from '../lib/similarity.js';
+import { requireStore } from '../lib/store.js';
 
 /**
  * Valid context type values.
@@ -37,30 +38,6 @@ import { checkDuplicate } from '../lib/similarity.js';
  * @constant
  */
 const VALID_TYPES = ['note', 'constraint', 'decision', 'task', 'entity', 'runbook', 'snippet'];
-
-/**
- * Find workspace for the current working directory via mount lookup.
- *
- * Searches mounts in order of path length (most specific first) to find
- * the workspace that contains the current directory.
- *
- * @returns {import('../db/local.js').Workspace|null} Matching workspace or null
- * @private
- */
-function findWorkspaceForCwd() {
-  const db = getDb();
-  const cwd = process.cwd();
-
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (cwd.startsWith(mount.path)) {
-      return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id);
-    }
-  }
-
-  return null;
-}
 
 /**
  * The context command for Commander.js.
@@ -83,7 +60,6 @@ contextCommand
   .description('Add a context object')
   .argument('<content>', 'Content of the context object')
   .option('-t, --type <type>', `Type: ${VALID_TYPES.join(', ')}`, 'note')
-  .option('-w, --workspace <name>', 'Workspace name (auto-detected from mount if not specified)')
   .option('--tag <tags>', 'Comma-separated tags')
   .option('-s, --scope <scope>', 'Scope path', '*')
   .option('-f, --force', 'Skip duplicate check')
@@ -95,22 +71,7 @@ contextCommand
   .action(async (content, options) => {
     const db = getDb();
 
-    // Find workspace
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        info(`Either run from a mounted directory or specify --workspace`);
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     if (!VALID_TYPES.includes(options.type)) {
       error(`Invalid type '${options.type}'. Must be one of: ${VALID_TYPES.join(', ')}`);
@@ -176,7 +137,6 @@ contextCommand
   .command('list')
   .alias('ls')
   .description('List context objects')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('-t, --type <type>', 'Filter by type')
   .option('--tag <tag>', 'Filter by tag')
   .option('-n, --limit <n>', 'Limit results', '20')
@@ -184,20 +144,7 @@ contextCommand
   .action(async options => {
     const db = getDb();
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     let query = 'SELECT * FROM context WHERE workspace_id = ?';
     const params = [workspace.id];

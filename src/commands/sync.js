@@ -1,57 +1,23 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
-import {
-  getSyncStatus,
-  pushChanges,
-  pullChanges,
-  syncWorkspace,
-  bootstrapWorkspaceFromFiles
-} from '../lib/sync.js';
+import { requireStore } from '../lib/store.js';
+import { getSyncStatus, pushChanges, pullChanges, syncWorkspace } from '../lib/sync.js';
 import { success, error, info, dim, heading, formatJson } from '../lib/output.js';
 import chalk from 'chalk';
 import ora from 'ora';
 
-function findWorkspaceForCwd() {
-  const db = getDb();
-  const cwd = process.cwd();
-
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (cwd.startsWith(mount.path)) {
-      return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id);
-    }
-  }
-
-  return null;
-}
-
-function resolveWorkspace(options) {
-  const db = getDb();
-  if (options.workspace) {
-    return db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-  }
-  // On a fresh clone there's no mount yet -- bootstrap from committed .substrate files.
-  return findWorkspaceForCwd() || bootstrapWorkspaceFromFiles(db, process.cwd());
-}
-
 export const syncCommand = new Command('sync')
   .description('Sync context with the committed .substrate files (git is the transport)')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    const workspace = resolveWorkspace(options);
-
-    if (!workspace) {
-      error('No workspace found. Specify with -w or run from a mounted directory.');
-      return;
-    }
+    const db = getDb();
+    const { workspace, root } = requireStore(db, error);
 
     const spinner = options.json ? null : ora('Syncing...').start();
 
     try {
-      const result = await syncWorkspace(workspace.id, { verbose: options.verbose });
+      const result = await syncWorkspace(workspace, root, { verbose: options.verbose });
 
       spinner?.stop();
 
@@ -93,17 +59,12 @@ export const syncCommand = new Command('sync')
 syncCommand
   .command('status')
   .description('Show sync status')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    const workspace = resolveWorkspace(options);
+    const db = getDb();
+    const { workspace, root } = requireStore(db, error);
 
-    if (!workspace) {
-      error('No workspace found. Specify with -w or run from a mounted directory.');
-      return;
-    }
-
-    const status = await getSyncStatus(workspace.id);
+    const status = await getSyncStatus(workspace, root);
 
     if (options.json) {
       console.log(formatJson(status));
@@ -143,25 +104,20 @@ syncCommand
     console.log();
   });
 
-// substrate sync push -- serialize local DB into .substrate files
+// substrate sync push -- serialize local cache into .substrate files
 syncCommand
   .command('push')
   .description('Write local context to the .substrate files (then commit with git)')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    const workspace = resolveWorkspace(options);
-
-    if (!workspace) {
-      error('No workspace found. Specify with -w or run from a mounted directory.');
-      return;
-    }
+    const db = getDb();
+    const { workspace, root } = requireStore(db, error);
 
     const spinner = options.json ? null : ora('Writing .substrate files...').start();
 
     try {
-      const result = await pushChanges(workspace.id, { verbose: options.verbose });
+      const result = await pushChanges(workspace, root, { verbose: options.verbose });
 
       spinner?.stop();
 
@@ -188,25 +144,20 @@ syncCommand
     }
   });
 
-// substrate sync pull -- reconcile .substrate files into local DB
+// substrate sync pull -- reconcile .substrate files into local cache
 syncCommand
   .command('pull')
   .description('Read the .substrate files into the local cache (after a git pull)')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('-v, --verbose', 'Show detailed output')
   .option('--json', 'Output as JSON')
   .action(async options => {
-    const workspace = resolveWorkspace(options);
-
-    if (!workspace) {
-      error('No workspace found. Specify with -w or run from a mounted directory.');
-      return;
-    }
+    const db = getDb();
+    const { workspace, root } = requireStore(db, error);
 
     const spinner = options.json ? null : ora('Reading .substrate files...').start();
 
     try {
-      const result = await pullChanges(workspace.id, { verbose: options.verbose });
+      const result = await pullChanges(workspace, root, { verbose: options.verbose });
 
       spinner?.stop();
 

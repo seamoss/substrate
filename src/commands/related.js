@@ -1,22 +1,8 @@
 import { Command } from 'commander';
 import { getDb } from '../db/local.js';
 import { error, info, formatJson, dim, shortId } from '../lib/output.js';
+import { requireStore } from '../lib/store.js';
 import chalk from 'chalk';
-
-function findWorkspaceForCwd() {
-  const db = getDb();
-  const cwd = process.cwd();
-
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (cwd.startsWith(mount.path)) {
-      return db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id);
-    }
-  }
-
-  return null;
-}
 
 function findContextByShortId(db, shortIdStr, workspaceId) {
   const items = db
@@ -49,26 +35,12 @@ export const relatedCommand = new Command('related')
   .description('Explore related context using graph traversal')
   .argument('<id>', 'Context ID (short ID) to explore from')
   .option('-d, --depth <n>', 'Traversal depth (1-2)', '1')
-  .option('-w, --workspace <name>', 'Workspace name')
   .option('--json', 'Output as JSON')
   .action(async (id, options) => {
     const db = getDb();
     const depth = Math.min(2, Math.max(1, parseInt(options.depth) || 1));
 
-    let workspace;
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-      if (!workspace) {
-        error(`Workspace '${options.workspace}' not found`);
-        process.exit(1);
-      }
-    } else {
-      workspace = findWorkspaceForCwd();
-      if (!workspace) {
-        error('No workspace found for current directory');
-        process.exit(1);
-      }
-    }
+    const { workspace } = requireStore(db, error);
 
     // Find the context item
     const result = findContextByShortId(db, id, workspace.id);

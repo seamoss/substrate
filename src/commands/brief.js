@@ -32,6 +32,7 @@
 import { Command } from 'commander';
 import { resolve } from 'path';
 import { getDb } from '../db/local.js';
+import { resolveStore } from '../lib/store.js';
 import { formatJson, heading, contextItem, info, dim, shortId } from '../lib/output.js';
 import { parseBudget, fitToBudget, BUDGET_PRESETS } from '../lib/tokens.js';
 import { rankItems, buildLinkCounts } from '../lib/priority.js';
@@ -44,29 +45,6 @@ import chalk from 'chalk';
  * @constant
  */
 const VALID_FORMATS = ['default', 'agent', 'markdown', 'claudemd'];
-
-/**
- * Find the mount that contains the given path.
- *
- * Searches mounts by longest path first to find the most specific match.
- * For example, `/foo/bar/baz` matches `/foo/bar` over `/foo`.
- *
- * @param {import('better-sqlite3').Database} db - Database instance
- * @param {string} targetPath - Absolute path to resolve
- * @returns {import('../db/local.js').Mount|null} The matching mount or null
- * @private
- */
-function findMountForPath(db, targetPath) {
-  const mounts = db.prepare('SELECT * FROM mounts ORDER BY length(path) DESC').all();
-
-  for (const mount of mounts) {
-    if (targetPath.startsWith(mount.path)) {
-      return mount;
-    }
-  }
-
-  return null;
-}
 
 /**
  * @typedef {Object} LinkInfo
@@ -575,7 +553,6 @@ function generateClaudeMdFormat(brief, workspace) {
 export const briefCommand = new Command('brief')
   .description('Get applicable context for current directory (primary agent interface)')
   .argument('[path]', 'Path to get context for', '.')
-  .option('-w, --workspace <name>', 'Workspace name (auto-detected if not specified)')
   .option('--tag <tags>', 'Filter by comma-separated tags')
   .option('-t, --type <type>', 'Filter by type')
   .option('-f, --format <format>', `Output format: ${VALID_FORMATS.join(', ')}`, 'default')
@@ -599,40 +576,31 @@ export const briefCommand = new Command('brief')
     const db = getDb();
     const targetPath = resolve(path);
 
-    // Find workspace
-    let workspace;
-    let mount;
+    // Resolve the store by discovering the enclosing .substrate/ (like git finds .git)
+    const store = resolveStore(db, targetPath);
 
-    if (options.workspace) {
-      workspace = db.prepare('SELECT * FROM workspaces WHERE name = ?').get(options.workspace);
-    } else {
-      mount = findMountForPath(db, targetPath);
-      if (mount) {
-        workspace = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(mount.workspace_id);
-      }
-    }
-
-    if (!workspace) {
+    if (!store) {
       if (options.compact) {
         console.log('# No workspace context available');
         return;
       }
 
       const output = {
-        error: 'No workspace found for this path',
+        error: 'No Substrate project found for this path',
         path: targetPath,
-        suggestion:
-          'Run: substrate init <workspace> && substrate mount add . --workspace <workspace>'
+        suggestion: 'Run: substrate init'
       };
 
       if (options.json || !options.human) {
         console.log(formatJson(output));
       } else {
-        info('No workspace found for this path');
-        dim(`Run 'substrate init <name>' then 'substrate mount add . --workspace <name>'`);
+        info('No Substrate project found for this path');
+        dim(`Run 'substrate init' in your repo first`);
       }
       return;
     }
+
+    const { workspace, root } = store;
 
     // Get all context for workspace
     let query = 'SELECT * FROM context WHERE workspace_id = ?';
@@ -655,7 +623,7 @@ export const briefCommand = new Command('brief')
     }));
 
     // Filter by scope
-    const relativePath = mount ? targetPath.replace(mount.path, '').replace(/^\//, '') : '';
+    const relativePath = targetPath.replace(root, '').replace(/^\//, '');
 
     let filtered = parsed.filter(item => {
       if (!item.scope || item.scope === '*') return true;

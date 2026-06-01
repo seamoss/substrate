@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import { createRequire } from 'module';
-import { mountCommand } from './commands/mount.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -28,7 +27,6 @@ program
 
 // Core commands
 program.addCommand(initCommand);
-program.addCommand(mountCommand);
 program.addCommand(contextCommand);
 program.addCommand(briefCommand);
 program.addCommand(linkCommand);
@@ -39,12 +37,12 @@ program.addCommand(recallCommand);
 // Shorthands for common operations
 program.addCommand(addCommand); // substrate add = substrate context add
 program.addCommand(lsCommand); // substrate ls = substrate context list
-program.addCommand(statusCommand); // substrate status = substrate mount status
+program.addCommand(statusCommand); // substrate status = show this repo's workspace
 
 // Configuration and MCP
 program.addCommand(configCommand); // substrate config
 program.addCommand(mcpCommand); // substrate mcp serve
-program.addCommand(projectCommand); // substrate project id/info/pin/unpin
+program.addCommand(projectCommand); // substrate project id/info
 
 // Sync
 program.addCommand(syncCommand); // substrate sync push/pull/status
