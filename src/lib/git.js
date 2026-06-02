@@ -10,6 +10,7 @@
  */
 
 import { execSync } from 'child_process';
+import { resolve } from 'path';
 
 /**
  * Run a git command, returning trimmed stdout or null on any failure.
@@ -134,4 +135,14 @@ export function recentCommits({ cwd, limit = 20, since } = {}) {
  */
 export function repoRoot(cwd) {
   return git('rev-parse --show-toplevel', cwd);
+}
+
+/**
+ * Absolute path to the repo's git hooks directory (handles worktrees), or null.
+ * @param {string} [cwd]
+ * @returns {string|null}
+ */
+export function gitHooksDir(cwd = process.cwd()) {
+  const rel = git('rev-parse --git-path hooks', cwd);
+  return rel ? resolve(cwd, rel) : null;
 }
