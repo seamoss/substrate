@@ -48,7 +48,8 @@ const RELATION_TYPES = [
   'blocks',
   'implements',
   'extends',
-  'references'
+  'references',
+  'supersedes'
 ];
 
 // Helper functions
@@ -127,9 +128,10 @@ async function handleBrief(args) {
     return { _error: 'No workspace found for this path' };
   }
 
-  // Query all context for workspace
-  let query = 'SELECT * FROM context WHERE workspace_id = ? AND deleted_at IS NULL';
-  const params = [workspace.id];
+  // Query active, unexpired context for workspace (briefs exclude superseded/deprecated/expired)
+  let query =
+    "SELECT * FROM context WHERE workspace_id = ? AND deleted_at IS NULL AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)";
+  const params = [workspace.id, new Date().toISOString()];
 
   // Type filter
   if (args.types && Array.isArray(args.types) && args.types.length > 0) {

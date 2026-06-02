@@ -61,6 +61,8 @@ let db = null;
  * @property {string} scope - Scope path pattern (default: '*')
  * @property {string} meta - JSON-encoded metadata object
  * @property {number} private - 0 = shared (context.jsonl), 1 = personal (context.priv.jsonl)
+ * @property {string} status - Lifecycle: 'active' | 'superseded' | 'deprecated'
+ * @property {string|null} expires_at - Optional ISO 8601 expiry; excluded from briefs once past
  * @property {string|null} remote_id - Deprecated; unused since git-backed sync
  * @property {string} created_at - ISO 8601 timestamp
  * @property {string} updated_at - ISO 8601 timestamp
@@ -142,6 +144,8 @@ export function getDb() {
       scope TEXT DEFAULT '*',
       meta TEXT DEFAULT '{}',
       private INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active',
+      expires_at TEXT,
       remote_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -174,6 +178,7 @@ export function getDb() {
     CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(ended_at);
     CREATE INDEX IF NOT EXISTS idx_context_workspace ON context(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_context_type ON context(type);
+    CREATE INDEX IF NOT EXISTS idx_context_status ON context(status);
     CREATE INDEX IF NOT EXISTS idx_context_synced ON context(synced_at);
     CREATE INDEX IF NOT EXISTS idx_workspaces_synced ON workspaces(synced_at);
   `);
@@ -211,6 +216,16 @@ function runMigrations(db) {
   const hasPrivate = contextInfo.some(col => col.name === 'private');
   if (!hasPrivate) {
     db.exec('ALTER TABLE context ADD COLUMN private INTEGER NOT NULL DEFAULT 0');
+  }
+
+  // Lifecycle: status (active|superseded|deprecated) and optional expiry
+  const hasStatus = contextInfo.some(col => col.name === 'status');
+  if (!hasStatus) {
+    db.exec("ALTER TABLE context ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
+  }
+  const hasExpiresAt = contextInfo.some(col => col.name === 'expires_at');
+  if (!hasExpiresAt) {
+    db.exec('ALTER TABLE context ADD COLUMN expires_at TEXT');
   }
 
   // Check and add deleted_at to workspaces if missing

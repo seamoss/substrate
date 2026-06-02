@@ -10,7 +10,8 @@ const RELATION_TYPES = [
   'blocks',
   'implements',
   'extends',
-  'references'
+  'references',
+  'supersedes'
 ];
 
 function findContextByShortId(db, shortIdStr, workspaceId) {

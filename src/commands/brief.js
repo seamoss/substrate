@@ -558,6 +558,7 @@ export const briefCommand = new Command('brief')
   .option('-f, --format <format>', `Output format: ${VALID_FORMATS.join(', ')}`, 'default')
   .option('--compact', 'Output only the prompt text (for piping into agents)')
   .option('--no-links', 'Exclude relationship links from output')
+  .option('--all', 'Include superseded, deprecated, and expired context')
   .option(
     '--budget <tokens>',
     `Token budget: number or preset (${Object.keys(BUDGET_PRESETS).join(', ')})`
@@ -602,9 +603,15 @@ export const briefCommand = new Command('brief')
 
     const { workspace, root } = store;
 
-    // Get all context for workspace
+    // Get all context for workspace. By default only active, unexpired items
+    // surface in a brief; --all includes superseded/deprecated/expired.
     let query = 'SELECT * FROM context WHERE workspace_id = ?';
     const params = [workspace.id];
+
+    if (!options.all) {
+      query += " AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)";
+      params.push(new Date().toISOString());
+    }
 
     if (options.type) {
       query += ' AND type = ?';

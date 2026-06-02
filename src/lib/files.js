@@ -89,6 +89,8 @@ function contextRowToRecord(row) {
     tags: JSON.parse(row.tags || '[]'),
     scope: row.scope || '*',
     meta: JSON.parse(row.meta || '{}'),
+    status: row.status || 'active',
+    expires_at: row.expires_at || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     deleted_at: row.deleted_at || null

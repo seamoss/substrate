@@ -125,6 +125,24 @@ describe('lib/files', () => {
     expect(existsSync(substratePaths(tempDir).contextPrivate)).toBe(false);
   });
 
+  it('round-trips lifecycle fields (status, expires_at)', () => {
+    createContext(db, { workspaceId: workspace.id, content: 'old way', status: 'superseded' });
+    createContext(db, {
+      workspaceId: workspace.id,
+      content: 'temporary',
+      expiresAt: '2030-01-01T00:00:00.000Z'
+    });
+
+    serializeWorkspace(db, workspace, tempDir);
+    const { context } = readWorkspaceFiles(tempDir);
+    const byContent = Object.fromEntries(context.map(c => [c.content, c]));
+
+    expect(byContent['old way'].status).toBe('superseded');
+    expect(byContent['old way'].expires_at).toBeNull();
+    expect(byContent['temporary'].status).toBe('active');
+    expect(byContent['temporary'].expires_at).toBe('2030-01-01T00:00:00.000Z');
+  });
+
   it('reports presence and yields empty arrays when nothing is written', () => {
     expect(hasWorkspaceFiles(tempDir)).toBe(false);
     const { manifest, context, links } = readWorkspaceFiles(tempDir);

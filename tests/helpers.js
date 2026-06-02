@@ -47,6 +47,8 @@ export function createTestDb() {
       scope TEXT DEFAULT '*',
       meta TEXT DEFAULT '{}',
       private INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active',
+      expires_at TEXT,
       remote_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -136,15 +138,25 @@ export function createMount(db, { workspaceId, path, scope = '*', tags = [] }) {
  */
 export function createContext(
   db,
-  { workspaceId, type = 'note', content, tags = [], scope = '*', meta = {}, private: priv = 0 }
+  {
+    workspaceId,
+    type = 'note',
+    content,
+    tags = [],
+    scope = '*',
+    meta = {},
+    private: priv = 0,
+    status = 'active',
+    expiresAt = null
+  }
 ) {
   const id = randomUUID();
   const now = new Date().toISOString();
 
   db.prepare(
     `
-    INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, private, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO context (id, workspace_id, type, content, tags, scope, meta, private, status, expires_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `
   ).run(
     id,
@@ -155,6 +167,8 @@ export function createContext(
     scope,
     JSON.stringify(meta),
     priv ? 1 : 0,
+    status,
+    expiresAt,
     now,
     now
   );

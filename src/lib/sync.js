@@ -141,12 +141,12 @@ export async function pullChanges(workspace, root, options = {}) {
 
   const insertStmt = db.prepare(
     `INSERT INTO context
-       (id, workspace_id, type, content, tags, scope, meta, private, created_at, updated_at, synced_at, deleted_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, workspace_id, type, content, tags, scope, meta, private, status, expires_at, created_at, updated_at, synced_at, deleted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const updateStmt = db.prepare(
     `UPDATE context
-       SET type = ?, content = ?, tags = ?, scope = ?, meta = ?, private = ?, updated_at = ?, synced_at = ?, deleted_at = ?
+       SET type = ?, content = ?, tags = ?, scope = ?, meta = ?, private = ?, status = ?, expires_at = ?, updated_at = ?, synced_at = ?, deleted_at = ?
      WHERE id = ?`
   );
 
@@ -166,6 +166,8 @@ export async function pullChanges(workspace, root, options = {}) {
         rec.scope || '*',
         meta,
         priv,
+        rec.status || 'active',
+        rec.expires_at || null,
         rec.created_at,
         rec.updated_at,
         now,
@@ -181,6 +183,8 @@ export async function pullChanges(workspace, root, options = {}) {
         rec.scope || '*',
         meta,
         priv,
+        rec.status || 'active',
+        rec.expires_at || null,
         rec.updated_at,
         now,
         rec.deleted_at || null,
