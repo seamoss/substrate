@@ -29,6 +29,8 @@ All commands support:
 | `digest`  | Session summary                       |
 | `recall`  | Search history                        |
 | `extract` | Extract context from changes          |
+| `ingest`  | Bootstrap context from history + docs |
+| `hooks`   | Manage Substrate git hooks            |
 | `dump`    | Export to markdown                    |
 
 ---
@@ -92,6 +94,10 @@ substrate add <content> [options]
 **Shared vs. private:**
 
 By default an item is **shared** — it lives in the committed `.substrate/context.jsonl` (the "collective mind"). With `--private` the item goes to the sibling `.substrate/context.priv.jsonl`, which is gitignored (via the `*.priv.jsonl` pattern) — for machine-specific or personal context that should never be committed. See [Sync & Sharing](sync.md).
+
+**Provenance:**
+
+Each item records where it came from in `meta.provenance` (current commit, git author, branch, and the file when `--scope` is a concrete path), so captured context is traceable.
 
 **Duplicate Detection:**
 
@@ -190,6 +196,7 @@ substrate brief [path] [options]
 - `--budget <tokens>` — Token budget: number or preset (`small`=2K, `medium`=8K, `large`=32K, `xl`=100K)
 - `--human` — Human-readable format with colors
 - `--no-links` — Exclude relationship info
+- `--all` — Include superseded, deprecated, and expired context (excluded by default)
 - `-t, --type <type>` — Filter by type
 - `--tag <tags>` — Filter by tags
 - `--json` — Output as JSON (default)
@@ -297,6 +304,7 @@ substrate link add <from> <to> [options]
 - `implements` — Implementation
 - `extends` — Extension
 - `references` — Reference
+- `supersedes` — This item replaces the target (the target is treated as superseded)
 
 **Examples:**
 
@@ -710,6 +718,56 @@ substrate extract commit [hash] [options]
 ```bash
 substrate extract commit              # List recent commits
 substrate extract commit abc123       # Analyze specific commit
+```
+
+---
+
+## ingest
+
+Bootstrap context from this repo's existing git history and docs — proposals you review,
+not automatic writes. Heuristic and offline: Conventional-Commit subjects (`feat:` →
+decision, `fix`/`perf`/`refactor` → note, breaking → constraint) and well-known docs
+(imperative "must/never/always" lines → constraints, ADR titles → decisions). Use `--plan`
+to hand the raw material to an agent for semantic refinement instead.
+
+```bash
+substrate ingest [options]
+```
+
+**Options:**
+
+- `--from <source>` — `git`, `docs`, or `all` (default: `all`)
+- `--since <ref>` — Only mine commits after this git ref/tag
+- `-n, --limit <n>` — Max commits to scan (default: 50)
+- `--apply` — Add the proposed items (default is a dry run; duplicates are skipped)
+- `--plan` — Emit the candidates + an instruction for an agent to extract semantically
+- `--json` — Output as JSON
+
+Applied items are stamped with provenance (`meta.provenance`, including the source commit
+or file). Review with `substrate ls`, then `substrate sync push` + commit to share.
+
+**Examples:**
+
+```bash
+substrate ingest                      # Dry run — see what would be captured
+substrate ingest --since v1.0.0       # Only commits since a tag
+substrate ingest --apply              # Add the fresh (non-duplicate) candidates
+substrate ingest --plan               # Let your agent refine the candidates
+```
+
+---
+
+## hooks
+
+Manage Substrate's git hooks. The post-commit hook runs `substrate extract commit HEAD`
+after each commit to surface context worth capturing. It's managed (sentinel-delimited so
+it coexists with any existing hook) and guarded — a no-op when Substrate isn't installed or
+the repo isn't tracked, and it never fails a commit.
+
+```bash
+substrate hooks install      # Install the post-commit hook
+substrate hooks uninstall    # Remove it
+substrate hooks status       # Show whether it's installed (default)
 ```
 
 ---

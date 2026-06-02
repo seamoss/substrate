@@ -49,6 +49,17 @@ This:
 3. Saves config to `.substrate/config.json`
 4. Writes the initial `.substrate/` files, ready to commit with git
 
+### Bootstrap from existing history (optional)
+
+Don't start from a blank slate. `substrate ingest` mines your git history (Conventional
+Commits) and docs (README rules, ADRs) into proposed context you review:
+
+```bash
+substrate ingest            # dry run — see the candidates
+substrate ingest --apply    # add the fresh ones (duplicates skipped)
+substrate ingest --plan     # or let your agent refine them
+```
+
 ### Add Context
 
 Add different types of context:
