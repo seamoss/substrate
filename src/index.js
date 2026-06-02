@@ -17,6 +17,7 @@ import { mcpCommand } from './commands/mcp.js';
 import { projectCommand } from './commands/project.js';
 import { syncCommand } from './commands/sync.js';
 import { relatedCommand } from './commands/related.js';
+import { whyCommand } from './commands/why.js';
 import { dumpCommand } from './commands/dump.js';
 import { sessionCommand } from './commands/session.js';
 
@@ -53,6 +54,7 @@ program.addCommand(syncCommand); // substrate sync push/pull/status
 
 // Graph exploration
 program.addCommand(relatedCommand); // substrate related <id>
+program.addCommand(whyCommand); // substrate why <file|symbol>
 
 // Export
 program.addCommand(dumpCommand); // substrate dump

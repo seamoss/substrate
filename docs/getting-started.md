@@ -96,6 +96,13 @@ substrate brief --format agent
 # Alternative formats
 substrate brief --format claudemd  # Output for CLAUDE.md injection
 substrate brief --budget medium    # Token-budgeted output (~8K tokens)
+
+# Just the context relevant to what you're changing
+substrate brief --changed          # scope to files changed in the working tree
+
+# Reverse lookup — what governs this file or symbol?
+substrate why src/api/auth.js
+substrate why RateLimiter
 ```
 
 ## Scoped Context

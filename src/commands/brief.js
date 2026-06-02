@@ -33,6 +33,8 @@ import { Command } from 'commander';
 import { resolve } from 'path';
 import { getDb } from '../db/local.js';
 import { resolveStore } from '../lib/store.js';
+import { changedFiles } from '../lib/git.js';
+import { scopeMatchesAny } from '../lib/scope.js';
 import { formatJson, heading, contextItem, info, dim, shortId } from '../lib/output.js';
 import { parseBudget, fitToBudget, BUDGET_PRESETS } from '../lib/tokens.js';
 import { rankItems, buildLinkCounts } from '../lib/priority.js';
@@ -558,6 +560,7 @@ export const briefCommand = new Command('brief')
   .option('-f, --format <format>', `Output format: ${VALID_FORMATS.join(', ')}`, 'default')
   .option('--compact', 'Output only the prompt text (for piping into agents)')
   .option('--no-links', 'Exclude relationship links from output')
+  .option('--changed', 'Scope to context for files changed in the working tree')
   .option('--all', 'Include superseded, deprecated, and expired context')
   .option(
     '--budget <tokens>',
@@ -629,15 +632,24 @@ export const briefCommand = new Command('brief')
       meta: JSON.parse(item.meta || '{}')
     }));
 
-    // Filter by scope
+    // Filter by scope. With --changed, scope to the working set (files changed in
+    // the repo); otherwise scope to the target path.
     const relativePath = targetPath.replace(root, '').replace(/^\//, '');
 
-    let filtered = parsed.filter(item => {
-      if (!item.scope || item.scope === '*') return true;
-      if (relativePath.startsWith(item.scope)) return true;
-      if (item.scope.startsWith(relativePath)) return true;
-      return false;
-    });
+    let filtered;
+    if (options.changed) {
+      const changed = changedFiles({ cwd: root });
+      filtered = parsed.filter(
+        item => !item.scope || item.scope === '*' || scopeMatchesAny(item.scope, changed)
+      );
+    } else {
+      filtered = parsed.filter(item => {
+        if (!item.scope || item.scope === '*') return true;
+        if (relativePath.startsWith(item.scope)) return true;
+        if (item.scope.startsWith(relativePath)) return true;
+        return false;
+      });
+    }
 
     // Filter by tags
     if (options.tag) {

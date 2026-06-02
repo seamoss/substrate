@@ -21,6 +21,7 @@ All commands support:
 | `context` | Manage context objects                |
 | `link`    | Manage relationships                  |
 | `related` | Explore graph connections             |
+| `why`     | Context governing a file or symbol    |
 | `sync`    | Sync context with `.substrate/` files |
 | `project` | Manage project identity               |
 | `config`  | Manage configuration                  |
@@ -196,6 +197,7 @@ substrate brief [path] [options]
 - `--budget <tokens>` — Token budget: number or preset (`small`=2K, `medium`=8K, `large`=32K, `xl`=100K)
 - `--human` — Human-readable format with colors
 - `--no-links` — Exclude relationship info
+- `--changed` — Scope to context for files changed in the working tree (the working set)
 - `--all` — Include superseded, deprecated, and expired context (excluded by default)
 - `-t, --type <type>` — Filter by type
 - `--tag <tags>` — Filter by tags
@@ -359,6 +361,39 @@ substrate related <id> [options]
 ```bash
 substrate related abc123
 substrate related abc123 --depth 2
+```
+
+---
+
+## why
+
+Show the context that **governs** or **mentions** a file or symbol — a reverse lookup from
+code to the decisions and constraints that shape it. Great for understanding unfamiliar code.
+
+```bash
+substrate why <target> [options]
+```
+
+**Arguments:**
+
+- `target` — A file/path (matched against item scopes) or a symbol/term (full-text search)
+
+**Options:**
+
+- `--all` — Include superseded, deprecated, and expired context
+- `--json` — Output as JSON
+
+**How it resolves:** a target with a path separator (or that exists on disk) is treated as a
+**path** — items whose `scope` covers it are shown under "Governs", and items mentioning its
+filename under "Mentions". Otherwise the target is a **symbol** and is full-text searched.
+Each result shows its provenance (source file/commit) when available.
+
+**Examples:**
+
+```bash
+substrate why src/api/auth.js     # what constraints/decisions govern this file
+substrate why RateLimiter         # context mentioning a symbol
+substrate why src/payments --json # machine-readable (used by the GitHub Action)
 ```
 
 ---
