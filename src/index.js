@@ -8,6 +8,7 @@ import { briefCommand } from './commands/brief.js';
 import { initCommand } from './commands/init.js';
 import { linkCommand } from './commands/link.js';
 import { extractCommand } from './commands/extract.js';
+import { ingestCommand } from './commands/ingest.js';
 import { digestCommand, recallCommand } from './commands/history.js';
 import { addCommand, lsCommand, statusCommand } from './commands/shorthands.js';
 import { configCommand } from './commands/config.js';
@@ -31,6 +32,7 @@ program.addCommand(contextCommand);
 program.addCommand(briefCommand);
 program.addCommand(linkCommand);
 program.addCommand(extractCommand);
+program.addCommand(ingestCommand);
 program.addCommand(digestCommand);
 program.addCommand(recallCommand);
 
