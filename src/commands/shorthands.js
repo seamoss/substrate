@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { getDb } from '../db/local.js';
 import { resolveStore, requireStore } from '../lib/store.js';
 import { getSyncStatus } from '../lib/sync.js';
+import { provenanceMeta } from '../lib/git.js';
 import {
   success,
   error,
@@ -80,7 +81,7 @@ export const addCommand = new Command('add')
       content,
       JSON.stringify(tags),
       options.scope,
-      '{}',
+      provenanceMeta({ scope: options.scope }),
       options.private ? 1 : 0,
       now,
       now

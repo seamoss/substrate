@@ -35,6 +35,7 @@ import {
 import { getDb, searchContext } from '../db/local.js';
 import { getStrategy } from '../commands/config.js';
 import { resolveStore } from '../lib/store.js';
+import { provenanceMeta } from '../lib/git.js';
 import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { parseBudget, fitToBudget } from '../lib/tokens.js';
@@ -249,7 +250,7 @@ async function handleBrief(args) {
 async function handleAdd(args) {
   const db = getDb();
   const targetPath = resolve(args.path || process.cwd());
-  const { workspace } = findWorkspaceForPath(db, targetPath);
+  const { root, workspace } = findWorkspaceForPath(db, targetPath);
 
   if (!workspace) {
     return { _error: 'No workspace found for this path' };
@@ -274,7 +275,7 @@ async function handleAdd(args) {
     args.content,
     JSON.stringify(tags),
     args.scope || '*',
-    '{}',
+    provenanceMeta({ scope: args.scope, cwd: root }),
     now,
     now
   );

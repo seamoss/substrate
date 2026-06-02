@@ -31,6 +31,7 @@ import { getDb } from '../db/local.js';
 import { success, error, info, warn, formatJson, contextItem, shortId } from '../lib/output.js';
 import { checkDuplicate } from '../lib/similarity.js';
 import { requireStore } from '../lib/store.js';
+import { provenanceMeta } from '../lib/git.js';
 
 /**
  * Valid context type values.
@@ -115,7 +116,7 @@ contextCommand
       content,
       JSON.stringify(tags),
       options.scope,
-      '{}',
+      provenanceMeta({ scope: options.scope }),
       options.private ? 1 : 0,
       now,
       now
