@@ -1,0 +1,21 @@
+name: 'Substrate context'
+description: 'Comment on PRs with the Substrate context (constraints/decisions) governing the changed files.'
+author: 'Substrate'
+branding:
+  icon: 'layers'
+  color: 'green'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install substrate (from this action)
+      shell: bash
+      run: |
+        cd "$GITHUB_ACTION_PATH"
+        npm ci --omit=dev --no-audit --no-fund
+        npm link
+    - name: Surface context on the PR
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/action/run.js"
+      env:
+        GITHUB_TOKEN: ${{ github.token }}

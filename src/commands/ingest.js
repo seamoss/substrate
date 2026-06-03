@@ -76,8 +76,9 @@ export const ingestCommand = new Command('ingest')
 
     if (annotated.length === 0) {
       if (options.json) console.log(formatJson({ added: 0, candidates: [] }));
-      else
+      else {
         info('No candidates found. Try `--since <tag>`, or capture manually with `substrate add`.');
+      }
       return;
     }
 

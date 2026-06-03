@@ -112,8 +112,9 @@ export const whyCommand = new Command('why')
 
     if (governs.length === 0 && mentions.length === 0) {
       info(`No context found for "${target}"`);
-      if (isPath)
+      if (isPath) {
         dim(`  Scope context to it: substrate add "..." --type constraint --scope "${relPath}"`);
+      }
       console.log();
       return;
     }

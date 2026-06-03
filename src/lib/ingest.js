@@ -82,8 +82,9 @@ export function candidatesFromDocs(root) {
       const line = raw.replace(/^[\s>*\-\d.]+/, '').trim();
       if (line.length < 12 || line.length > 200) continue;
       if (line.startsWith('#') || line.startsWith('```') || line.includes('](')) continue;
-      if (RULE.test(line))
+      if (RULE.test(line)) {
         out.push({ type: 'constraint', content: line, tags: [], source: { file: f } });
+      }
     }
   }
 

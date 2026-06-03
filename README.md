@@ -93,6 +93,7 @@ git add .substrate && git commit -m "..." && git push
 - [Getting Started](docs/getting-started.md) — Installation and first steps
 - [CLI Reference](docs/cli-reference.md) — Complete command documentation
 - [Sync & Sharing](docs/sync.md) — Git-backed sync and the shared/private stores
+- [GitHub Action](docs/github-action.md) — Surface governing context on every PR
 
 ### Editor & Tool Integrations
 
