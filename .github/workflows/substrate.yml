@@ -1,0 +1,21 @@
+name: Substrate context
+
+# Dogfood: run Substrate's own Action on its PRs, commenting with the context
+# that governs the changed files.
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  context:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed to diff against the base branch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: ./ # the action lives in this repo

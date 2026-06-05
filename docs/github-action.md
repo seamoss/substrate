@@ -49,6 +49,13 @@ governs the changes, it skips or posts a short note.
 - `actions/checkout` with `fetch-depth: 0` so it can diff against the base branch.
 - Node 20 on the runner (`actions/setup-node@v4`).
 
+## Dogfooding
+
+Substrate runs this Action on its own pull requests — see
+[`.github/workflows/substrate.yml`](../.github/workflows/substrate.yml) (it references the
+local action with `uses: ./`) and this repo's committed [`.substrate/`](../.substrate)
+context.
+
 ## See also
 
 [CLI Reference](cli-reference.md) (`substrate why`) · [Sync & Sharing](sync.md)
